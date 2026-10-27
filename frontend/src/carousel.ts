@@ -61,17 +61,11 @@ export class CarouselController {
   }
 
   private handleViewportChange(): void {
-    if (this.mediaQuery.matches) {
-      if (this.dotsContainer) this.dotsContainer.style.display = 'flex';
-      this.showSlide(this.currentIndex);
-      this.startAutoPlay();
-    } else {
-      this.stopAutoPlay();
-      this.showSlide(0);
-      if (this.prevBtn) this.prevBtn.style.display = 'none';
-      if (this.nextBtn) this.nextBtn.style.display = 'none';
-      if (this.dotsContainer) this.dotsContainer.style.display = 'none';
-    }
+    if (this.dotsContainer) this.dotsContainer.style.display = 'flex';
+    if (this.prevBtn) this.prevBtn.style.display = this.mediaQuery.matches ? 'none' : 'inline-flex';
+    if (this.nextBtn) this.nextBtn.style.display = this.mediaQuery.matches ? 'none' : 'inline-flex';
+    this.showSlide(this.currentIndex);
+    this.startAutoPlay();
   }
 
   private initSlidesAndDots(): void {
@@ -195,7 +189,7 @@ export class CarouselController {
     if (count === 0) return;
 
     this.currentIndex = (index + count) % count;
-    this.trackEl.style.transform = `translateX(-${(this.currentIndex * 100) / count}%)`;
+    this.trackEl.style.transform = `translateX(-${this.currentIndex * 100}%)`;
 
     this.dotButtons.forEach((dot, i) => {
       const isActive = i === this.currentIndex;
@@ -225,9 +219,6 @@ export class CarouselController {
 
   public startAutoPlay(): void {
     this.stopAutoPlay();
-    if (!this.mediaQuery.matches) {
-      return;
-    }
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       return;
     }

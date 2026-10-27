@@ -318,7 +318,7 @@ body {
 
 @media (min-width: 769px) {
   .carousel-dots {
-    display: none !important;
+    display: flex;
   }
 }
 
