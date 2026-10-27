@@ -276,8 +276,8 @@ export class AdminController {
       if (!isPasswordValid) {
         res.status(403).json({
           ok: false,
-          error: 'Contraseña administrativa incorrecta para autorizar la restauración.',
-          message: 'Contraseña administrativa incorrecta para autorizar la restauración.'
+          error: 'Contraseña incorrecta para autorizar la restauración.',
+          message: 'Contraseña incorrecta para autorizar la restauración.'
         });
         return;
       }

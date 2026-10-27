@@ -673,14 +673,66 @@ export class FormController {
     });
   }
 
+  private resetFormState(): void {
+    if (this.form) {
+      this.form.reset();
+    }
+    if (this.tipoDocSelect) {
+      this.tipoDocSelect.value = 'DNI';
+      this.updateDocumentRules();
+    }
+    if (this.dptoSelect) {
+      this.dptoSelect.value = '';
+    }
+    if (this.provSelect) {
+      this.resetSelect(this.provSelect, 'Provincia');
+      this.provSelect.disabled = true;
+    }
+    if (this.distSelect) {
+      this.resetSelect(this.distSelect, 'Distrito');
+      this.distSelect.disabled = true;
+    }
+    if (this.ubigeoInput) {
+      this.ubigeoInput.value = '';
+    }
+    if (this.hijosInput) {
+      this.hijosInput.value = '1';
+    }
+    if (this.sinHijosCheck) {
+      this.sinHijosCheck.checked = false;
+    }
+    this.renderChildren();
+
+    this.form?.querySelectorAll('.is-valid, .is-invalid').forEach((el) => {
+      el.classList.remove('is-valid', 'is-invalid');
+      el.removeAttribute('aria-invalid');
+    });
+    this.form?.querySelectorAll<HTMLElement>('.field-error-msg').forEach((el) => {
+      el.textContent = '';
+      el.style.display = 'none';
+    });
+  }
+
   private showSuccessScreen(payload: ParticipantePayload): void {
     const shell = document.getElementById('actualizacion');
     if (!shell) return;
 
     const nombreCompleto = `${payload.nombres} ${payload.apellidos}`.trim();
 
-    shell.innerHTML = `
-      <div class="success-card">
+    // Ocultar el bloque de introducción y el formulario mientras se muestra la confirmación de éxito
+    const introEl = shell.querySelector<HTMLElement>('.intro');
+    if (introEl) introEl.hidden = true;
+    if (this.form) this.form.hidden = true;
+
+    let successContainer = document.getElementById('successScreenContainer');
+    if (!successContainer) {
+      successContainer = document.createElement('div');
+      successContainer.id = 'successScreenContainer';
+      shell.appendChild(successContainer);
+    }
+
+    successContainer.innerHTML = `
+      <div class="success-card" role="dialog" aria-modal="true" aria-labelledby="successTitleHeading">
         <div class="success-icon-wrap">
           <div class="success-icon" aria-hidden="true">✓</div>
         </div>
@@ -689,7 +741,7 @@ export class FormController {
           <span>✓</span> Registro completado con éxito
         </div>
 
-        <h2 class="success-title">¡Muchas gracias por tu participación!</h2>
+        <h2 class="success-title" id="successTitleHeading">¡Muchas gracias por tu participación!</h2>
 
         <p class="success-subtitle">
           Tus datos han sido actualizados exitosamente en <strong>CONA</strong> y ya estás participando en el <strong>sorteo de grandes premios para tu hogar</strong>.
@@ -725,16 +777,16 @@ export class FormController {
 
         <div class="success-notice">
           <p>
-            <strong>Información importante:</strong> Tu actualización ya quedó guardada de forma segura. Para evitar confusiones, el formulario ha finalizado y ya no es necesario volver a registrarte.
+            <strong>Información importante:</strong> Tu actualización ya quedó guardada de forma segura. Presiona el botón inferior para finalizar y volver al inicio de la página.
           </p>
         </div>
 
         <div class="success-actions">
           <button type="button" class="btn-close-window" id="btnCloseWindow">
-            ✕ Cerrar esta página
+            Cerrar página
           </button>
           <p class="close-hint" id="closeHint">
-            Ya puedes cerrar esta ventana o pestaña en tu navegador.
+            Al cerrar se limpiará el formulario y volverás al inicio de la campaña.
           </p>
         </div>
       </div>
@@ -744,8 +796,11 @@ export class FormController {
 
     const btnClose = document.getElementById('btnCloseWindow') as HTMLButtonElement | null;
     if (btnClose) {
+      btnClose.focus();
       btnClose.addEventListener('click', () => {
-        window.close();
+        this.resetFormState();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        window.location.href = '/';
       });
     }
   }
