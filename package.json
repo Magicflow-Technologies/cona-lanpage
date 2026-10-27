@@ -1,0 +1,48 @@
+{
+  "name": "cona-campana-actualizacion",
+  "version": "1.0.0",
+  "description": "Sistema Fullstack de Campaña de Actualización de Datos CONA - Clean Architecture & TypeScript",
+  "main": "dist/server.js",
+  "scripts": {
+    "build:backend": "tsc -p tsconfig.json",
+    "build:frontend": "tsc -p frontend/tsconfig.json",
+    "build": "npm run build:backend && npm run build:frontend",
+    "init:db": "npm run build:backend && node dist/infrastructure/database/initDb.js",
+    "dev": "npm run build && node dist/server.js",
+    "start": "npm run build && node dist/server.js",
+    "test:e2e": "npm run build && node dist/scripts/verifySystem.js"
+  },
+  "keywords": [
+    "CONA",
+    "CONAFOVICER",
+    "TypeScript",
+    "Clean-Architecture",
+    "Repository-Pattern",
+    "SQLite"
+  ],
+  "author": "CONA Fullstack Team",
+  "license": "ISC",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^12.8.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "exceljs": "^4.4.0",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/cookie-parser": "^1.4.10",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^25.5.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.2"
+  }
+}

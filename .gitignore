@@ -1,0 +1,7 @@
+node_modules/
+.env
+*.sqlite-shm
+*.sqlite-wal
+*.db-shm
+*.db-wal
+cona-version3-deploy.zip

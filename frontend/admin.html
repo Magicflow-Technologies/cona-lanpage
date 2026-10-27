@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Portal Administrativo | Campaña CONA</title>
+  <style>
+    :root {
+      --cona-blue: #002554;
+      --cona-blue-2: #073b77;
+      --cona-orange: #fc4c02;
+      --cona-sky: #bfdfec;
+      --cona-cream: #f0efdd;
+      --ink: #172033;
+      --muted: #667085;
+      --border: #d8e2ee;
+      --success: #137a4e;
+      --danger: #b42318;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 8% 8%, rgba(191,223,236,.42), transparent 32%),
+        radial-gradient(circle at 94% 12%, rgba(252,76,2,.09), transparent 24%),
+        linear-gradient(180deg, #f5f9fe 0%, #eaf2fa 100%);
+      min-height: 100vh;
+    }
+
+    .topbar {
+      background: linear-gradient(135deg, #001c42 0%, var(--cona-blue) 52%, var(--cona-blue-2) 100%);
+      color: #fff;
+      padding: 14px 24px;
+      box-shadow: 0 12px 32px rgba(0,25,60,.18);
+    }
+    .topbar-inner {
+      max-width: 1280px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .brand-group .logo {
+      width: min(210px, 48vw);
+      height: auto;
+      display: block;
+    }
+    .portal-tag {
+      padding: 6px 11px;
+      border-radius: 999px;
+      background: rgba(252,76,2,.92);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .back-link {
+      color: rgba(255,255,255,.9);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 8px 13px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,.22);
+      background: rgba(255,255,255,.07);
+      transition: background .16s ease;
+    }
+    .back-link:hover { background: rgba(255,255,255,.16); }
+
+    /* Vista Login */
+    .login-container {
+      max-width: 440px;
+      margin: 64px auto;
+      padding: 0 16px;
+    }
+    .login-card {
+      background: #fff;
+      border-radius: 24px;
+      padding: 34px 30px;
+      border: 1px solid rgba(0,37,84,.09);
+      box-shadow: 0 24px 60px rgba(0,37,84,.14);
+    }
+    .login-card h1 {
+      margin: 0 0 8px;
+      color: var(--cona-blue);
+      font-size: 24px;
+    }
+    .login-card p {
+      margin: 0 0 22px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .field { margin-bottom: 16px; }
+    .field label {
+      display: block;
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--cona-blue);
+      margin-bottom: 6px;
+    }
+    .field input {
+      width: 100%;
+      padding: 13px 14px;
+      border-radius: 12px;
+      border: 1.5px solid var(--border);
+      font: inherit;
+      font-size: 14px;
+      outline: none;
+      transition: border-color .16s ease, box-shadow .16s ease;
+    }
+    .field input:focus {
+      border-color: var(--cona-blue-2);
+      box-shadow: 0 0 0 4px rgba(0,37,84,.08);
+    }
+    .error-banner {
+      padding: 11px 13px;
+      border-radius: 11px;
+      background: #fef3f2;
+      border: 1px solid #fecdca;
+      color: var(--danger);
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+    .btn-primary {
+      width: 100%;
+      appearance: none;
+      border: 0;
+      border-radius: 13px;
+      padding: 14px 20px;
+      background: var(--cona-orange);
+      color: #fff;
+      font: inherit;
+      font-weight: 900;
+      font-size: 15px;
+      cursor: pointer;
+      box-shadow: 0 12px 26px rgba(252,76,2,.26);
+      transition: transform .16s ease, opacity .16s ease;
+    }
+    .btn-primary:hover { transform: translateY(-1px); }
+    .btn-primary:disabled { opacity: .6; cursor: wait; }
+
+    /* Vista Dashboard */
+    .dashboard-container {
+      max-width: 1280px;
+      margin: 28px auto 64px;
+      padding: 0 20px;
+    }
+    .dash-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-bottom: 22px;
+    }
+    .dash-header h1 {
+      margin: 0;
+      color: var(--cona-blue);
+      font-size: 25px;
+    }
+    .dash-header p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .user-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .user-badge {
+      padding: 8px 13px;
+      border-radius: 999px;
+      background: #e6eff8;
+      color: var(--cona-blue);
+      font-size: 13px;
+      font-weight: 800;
+    }
+    .btn-outline {
+      appearance: none;
+      border: 1.5px solid var(--cona-blue);
+      background: #fff;
+      color: var(--cona-blue);
+      border-radius: 11px;
+      padding: 9px 14px;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: background .16s ease, color .16s ease;
+    }
+    .btn-outline:hover {
+      background: var(--cona-blue);
+      color: #fff;
+    }
+    .btn-excel {
+      appearance: none;
+      border: 0;
+      background: var(--success);
+      color: #fff;
+      border-radius: 12px;
+      padding: 11px 18px;
+      font: inherit;
+      font-size: 14px;
+      font-weight: 900;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 10px 24px rgba(19,122,78,.24);
+      transition: transform .16s ease, opacity .16s ease;
+    }
+    .btn-excel:hover { transform: translateY(-1px); }
+    .btn-excel:disabled { opacity: .6; cursor: wait; }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
+      margin-bottom: 22px;
+    }
+    .stat-card {
+      background: #fff;
+      border-radius: 18px;
+      padding: 18px 20px;
+      border: 1px solid rgba(0,37,84,.08);
+      box-shadow: 0 12px 30px rgba(0,37,84,.06);
+    }
+    .stat-label {
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .stat-value {
+      font-size: 30px;
+      font-weight: 900;
+      color: var(--cona-blue);
+    }
+    .stat-card.accent .stat-value { color: var(--cona-orange); }
+    .stat-card.green .stat-value { color: var(--success); }
+
+    .toolbar-card {
+      background: #fff;
+      border-radius: 18px;
+      padding: 18px 20px;
+      border: 1px solid rgba(0,37,84,.08);
+      box-shadow: 0 12px 30px rgba(0,37,84,.05);
+      margin-bottom: 18px;
+      display: grid;
+      grid-template-columns: minmax(220px, 2fr) minmax(140px, 1fr) minmax(140px, 1fr) auto;
+      gap: 14px;
+      align-items: end;
+    }
+    .toolbar-field label {
+      display: block;
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--cona-blue);
+      margin-bottom: 5px;
+    }
+    .toolbar-field input {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1.5px solid var(--border);
+      font: inherit;
+      font-size: 13px;
+    }
+    .toolbar-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .table-card {
+      background: #fff;
+      border-radius: 20px;
+      border: 1px solid rgba(0,37,84,.08);
+      box-shadow: 0 18px 46px rgba(0,37,84,.08);
+      overflow: hidden;
+    }
+    .table-meta {
+      padding: 14px 20px;
+      background: #f8fbff;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--cona-blue);
+    }
+    .table-responsive {
+      width: 100%;
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 960px;
+      font-size: 13.5px;
+    }
+    thead th {
+      background: var(--cona-blue);
+      color: #fff;
+      text-align: left;
+      padding: 13px 14px;
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      white-space: nowrap;
+    }
+    tbody tr {
+      border-bottom: 1px solid #edf2f7;
+      transition: background .12s ease;
+    }
+    tbody tr:hover { background: #f5f9ff; }
+    tbody td {
+      padding: 13px 14px;
+      vertical-align: middle;
+    }
+    .col-id {
+      font-weight: 900;
+      color: var(--cona-blue);
+      white-space: nowrap;
+    }
+    .doc-badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 6px;
+      background: #e6eff8;
+      color: var(--cona-blue);
+      font-size: 11px;
+      font-weight: 800;
+      margin-right: 5px;
+    }
+    .doc-num { font-family: "Consolas", monospace; font-size: 14px; }
+    .participant-name { font-weight: 800; color: var(--ink); }
+    .participant-meta { display: block; color: var(--muted); font-size: 11.5px; margin-top: 2px; }
+    .table-link { color: var(--cona-blue-2); text-decoration: none; font-weight: 600; }
+    .table-link:hover { text-decoration: underline; }
+    .col-date { white-space: nowrap; font-size: 12.5px; color: #344054; }
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .status-active {
+      background: #e6f6ee;
+      color: var(--success);
+    }
+    .promo-meta {
+      display: block;
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+    .empty-cell {
+      text-align: center;
+      padding: 38px 20px !important;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .toast {
+      position: fixed;
+      right: 20px; bottom: 20px;
+      background: #fff;
+      border-left: 5px solid var(--success);
+      box-shadow: 0 12px 35px rgba(0,0,0,.17);
+      border-radius: 12px;
+      padding: 14px 16px;
+      max-width: min(390px, calc(100vw - 40px));
+      z-index: 20;
+      transform: translateY(120px);
+      opacity: 0;
+      transition: .25s ease;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.error { border-left-color: var(--danger); }
+    .toast strong { display: block; color: var(--cona-blue); margin-bottom: 3px; }
+
+    @media (max-width: 900px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .toolbar-card { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand-group">
+        <img class="logo" alt="CONA - Juntos construimos tu bienestar" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAyAAAAFACAYAAABEGxgbAAAdS0lEQVR4nO3dbZKlqLoGUPNGz6Ry/iOqHEueH93eskg/UOEVcK2IjNOne283CiKPon58f39PAAAAEf7v6QIAAADvIYAAAABhBBAAACCMAAIAAIQRQAAAgDACCAAAEEYAAQAAwgggAABAGAEEAAAII4AAAABhBBAAACCMAAIAAIQRQAAAgDACCAAAEEYAAQAAwgggAABAGAEEAAAII4AAAABhBBAAACCMAAIAAIQRQAAAgDACCAAAEEYAAQAAwgggAABAGAEEAAAII4AAAABhBBAAACCMAAIAAIQRQAAAgDACCAAAEEYAAQAAwgggAABAGAEEAAAII4AAAABhBBAAACCMAAIAAIQRQAAAgDACCAAAEEYAAQAAwgggAABAGAEEAAAII4AAAABhBBAAACCMAAIAAIQRQAAAgDACCAAAEEYAAQAAwgggAABAGAEEAAAII4AAAABhBBAAACCMAAIAAIQRQAAAgDACCAAAEEYAAQAAwgggAABAGAEEAAAII4AAAABhBBAAACCMAAIAAIQRQAAAgDACCAAAEEYAAQAAwgggAABAGAEEAAAII4AAAABhBBAAACCMAAIAAIQRQAAAgDACCAAAEEYAAQAAwgggAABAGAEEAAAII4AAAABhBBAAACCMAAIAAIQRQAAAgDACCAAAEEYAAQAAwgggAABAGAEEAAAII4AAAABhBBAAACCMAAIAAIQRQAAAgDACCAAAEEYAAQAAwgggAABAGAEEAAAII4AAAABhBBAAACCMAAIAAIQRQAAAgDACCAAAEEYAAQAAwgggAABAGAEEAAAII4AAAABhBBAAACCMAAIAAIQRQAAAgDACCAAAEEYAAQAAwgggAABAGAEEAAAII4AAAABhBBAAACCMAAIAAIQRQAAAgDACCAAAEEYAAQAAwgggAABAGAEEAAAII4AAAABhBBAAACCMAAIAAIQRQAAAgDACCAAAEEYAAQAAwgggAABAGAEEAAAII4AAAABhBBAAACCMAAIAAIQRQAAAgDACCAAAEEYAAQAAwgggAABAGAEEAAAII4AAAABhBJAx/P7v73vx9zvje9/Tz+/kfI+y1urvO+N76g8A6M7H93fOOIeGzAPMXxmf/ThYTs4yvqZp+sz4HPlKbfucnffrv/8dsQ5L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">
+        <span class="portal-tag">Portal Admin</span>
+      </div>
+      <div class="topbar-actions">
+        <a class="back-link" href="/">← Volver a la Campaña</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- VISTA DE LOGIN PROTEGIDO -->
+  <section class="login-container" id="loginView">
+    <div class="login-card">
+      <h1>Acceso Administrativo</h1>
+      <p>Ingresa tus credenciales institucionales para gestionar el padrón de participantes de la campaña y exportar reportes.</p>
+      <div class="error-banner" id="loginErrorBox" role="alert" hidden></div>
+      <form id="adminLoginForm">
+        <div class="field">
+          <label for="adminUsername">Usuario Administrador</label>
+          <input id="adminUsername" name="username" type="text" autocomplete="username" required placeholder="Ej. admin" />
+        </div>
+        <div class="field">
+          <label for="adminPassword">Contraseña</label>
+          <input id="adminPassword" name="password" type="password" autocomplete="current-password" required placeholder="••••••••••••" />
+        </div>
+        <button class="btn-primary" id="loginSubmitBtn" type="submit">Ingresar al Portal Admin</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- VISTA DE DASHBOARD DE REGISTROS -->
+  <main class="dashboard-container" id="dashboardView" hidden>
+    <div class="dash-header">
+      <div>
+        <h1>Padrón de Participantes Registrados</h1>
+        <p>Campaña de actualización de datos y sorteo institucional CONA</p>
+      </div>
+      <div class="user-controls">
+        <span class="user-badge" id="adminUserBadge">Usuario: admin</span>
+        <button class="btn-excel" id="exportExcelBtn" type="button">
+          <span>⬇ Exportar a Excel (.xlsx)</span>
+        </button>
+        <button class="btn-outline" id="logoutBtn" type="button">Cerrar sesión</button>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Total Registrados</div>
+        <div class="stat-value" id="statTotal">0</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-label">Participando en Sorteo</div>
+        <div class="stat-value" id="statSorteo">0</div>
+      </div>
+      <div class="stat-card accent">
+        <div class="stat-label">Con Hijos Menores</div>
+        <div class="stat-value" id="statPromos">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Registros de Hoy</div>
+        <div class="stat-value" id="statHoy">0</div>
+      </div>
+    </div>
+
+    <section class="toolbar-card" aria-label="Herramientas de búsqueda y filtrado">
+      <div class="toolbar-field">
+        <label for="searchInput">Buscador rápido por Documento, Apellidos, Nombres, RUC o Correo</label>
+        <input id="searchInput" type="search" placeholder="Buscar por DNI/CE, apellidos, nombres, RUC, proyecto, celular o correo…" />
+      </div>
+      <div class="toolbar-field">
+        <label for="fechaDesde">Fecha desde</label>
+        <input id="fechaDesde" type="date" />
+      </div>
+      <div class="toolbar-field">
+        <label for="fechaHasta">Fecha hasta</label>
+        <input id="fechaHasta" type="date" />
+      </div>
+      <div class="toolbar-actions">
+        <button class="btn-outline" id="clearFiltersBtn" type="button">Limpiar filtros</button>
+        <button class="btn-outline" id="refreshBtn" type="button">↻ Actualizar</button>
+      </div>
+    </section>
+
+    <section class="table-card">
+      <div class="table-meta">
+        <span id="resultsCounter">Mostrando 0 participantes registrados</span>
+        <span>Seguridad activa: SQLi Prepared Statements · Cookie JWT HttpOnly</span>
+      </div>
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Documento</th>
+              <th>Apellidos y Nombres</th>
+              <th>Datos Laborales</th>
+              <th>Dirección y Ubicación</th>
+              <th>N.º de Celular</th>
+              <th>Correo Electrónico</th>
+              <th>Fecha y Hora de Registro</th>
+              <th>Estado Sorteo</th>
+            </tr>
+          </thead>
+          <tbody id="participantsTableBody">
+            <tr>
+              <td colspan="9" class="empty-cell">Cargando registros…</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="adminToast" role="status" aria-live="polite">
+    <strong id="adminToastTitle"></strong>
+    <span id="adminToastText"></span>
+  </div>
+
+  <script type="module" src="dist/admin.js?v=20261027_01"></script>
+</body>
+</html>
