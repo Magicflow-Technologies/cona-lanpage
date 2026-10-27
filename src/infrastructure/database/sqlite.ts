@@ -69,7 +69,7 @@ export function getSqliteConnection(): SqliteConnection {
 
 /**
  * Ejecuta automáticamente la creación/actualización de la tabla `participantes`
- * con la matriz oficial de datos de la campaña CONA.
+ * con la matriz oficial de datos de la campaña CONA y soporte Soft Delete (`activo`, `fecha_eliminacion`).
  */
 export function initializeSchema(db: SqliteConnection): void {
   const tableInfo = db.prepare(`PRAGMA table_info(participantes)`).all() as Array<{ name: string }>;
@@ -142,6 +142,10 @@ export function initializeSchema(db: SqliteConnection): void {
     const estadoExpr = existingCols.has('estado_sorteo')
       ? "COALESCE(estado_sorteo, 'Participando')"
       : "'Participando'";
+    const activoExpr = existingCols.has('activo') ? 'COALESCE(activo, 1)' : '1';
+    const fechaEliminacionExpr = existingCols.has('fecha_eliminacion')
+      ? 'fecha_eliminacion'
+      : 'NULL';
 
     db.exec(`
       BEGIN TRANSACTION;
@@ -166,13 +170,16 @@ export function initializeSchema(db: SqliteConnection): void {
         hijos_json TEXT NOT NULL DEFAULT '[]',
         consentimiento_datos_personales INTEGER NOT NULL CHECK (consentimiento_datos_personales IN (0, 1)) DEFAULT 1,
         estado_sorteo TEXT NOT NULL DEFAULT 'Participando',
-        fecha_registro TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+        fecha_registro TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+        activo INTEGER NOT NULL DEFAULT 1,
+        fecha_eliminacion TEXT NULL
       );
       INSERT OR IGNORE INTO participantes_new (
         id, tipo_documento, numero_documento, apellidos, nombres,
         celular, correo, direccion, departamento, provincia, distrito, ubigeo,
         ruc_empresa, nombre_proyecto, categoria, especialidad,
-        hijos_menores, hijos_json, consentimiento_datos_personales, estado_sorteo, fecha_registro
+        hijos_menores, hijos_json, consentimiento_datos_personales, estado_sorteo,
+        fecha_registro, activo, fecha_eliminacion
       )
       SELECT
         id,
@@ -195,7 +202,9 @@ export function initializeSchema(db: SqliteConnection): void {
         ${hijosJsonExpr},
         ${consentExpr},
         ${estadoExpr},
-        COALESCE(fecha_registro, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+        COALESCE(fecha_registro, strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+        ${activoExpr},
+        ${fechaEliminacionExpr}
       FROM participantes;
       DROP TABLE participantes;
       ALTER TABLE participantes_new RENAME TO participantes;
@@ -225,7 +234,9 @@ export function initializeSchema(db: SqliteConnection): void {
       hijos_json TEXT NOT NULL DEFAULT '[]',
       consentimiento_datos_personales INTEGER NOT NULL CHECK (consentimiento_datos_personales IN (0, 1)) DEFAULT 1,
       estado_sorteo TEXT NOT NULL DEFAULT 'Participando',
-      fecha_registro TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+      fecha_registro TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+      activo INTEGER NOT NULL DEFAULT 1,
+      fecha_eliminacion TEXT NULL
     );
 
     CREATE UNIQUE INDEX IF NOT EXISTS idx_participantes_tipo_num_doc_unique
@@ -239,5 +250,25 @@ export function initializeSchema(db: SqliteConnection): void {
   `;
 
   db.exec(createTableSQL);
+
+  // Migración incremental para agregar columnas de Soft Delete si la tabla ya existía sin ellas
+  const currentCols = new Set(
+    (db.prepare(`PRAGMA table_info(participantes)`).all() as Array<{ name: string }>).map(
+      (c) => c.name
+    )
+  );
+
+  if (!currentCols.has('activo')) {
+    db.exec(`ALTER TABLE participantes ADD COLUMN activo INTEGER NOT NULL DEFAULT 1;`);
+    console.log('[SQLite] Columna "activo" agregada a la tabla "participantes".');
+  }
+
+  if (!currentCols.has('fecha_eliminacion')) {
+    db.exec(`ALTER TABLE participantes ADD COLUMN fecha_eliminacion TEXT NULL;`);
+    console.log('[SQLite] Columna "fecha_eliminacion" agregada a la tabla "participantes".');
+  }
+
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_participantes_activo ON participantes (activo);`);
+
   console.log('[SQLite] Tabla "participantes" verificada y lista para recibir registros.');
 }

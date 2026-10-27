@@ -35,6 +35,7 @@ export interface ApiResponse<T = unknown> {
   ok: boolean;
   code?: string;
   message: string;
+  error?: string;
   data?: T;
 }
 
@@ -61,6 +62,8 @@ export interface ParticipanteRecord {
   consentimiento_datos_personales: boolean;
   estado_sorteo: string;
   fecha_registro: string;
+  activo?: boolean;
+  fecha_eliminacion?: string | null;
   dni?: string;
   nombres_apellidos?: string;
 }

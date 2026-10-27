@@ -38,4 +38,16 @@ export class SupabaseParticipanteRepository implements IParticipanteRepository {
   public async obtenerTodos(): Promise<Participante[]> {
     return [];
   }
+
+  public async obtenerEliminados(): Promise<Participante[]> {
+    return [];
+  }
+
+  public async eliminar(_id: number): Promise<boolean> {
+    return false;
+  }
+
+  public async restaurar(_id: number): Promise<boolean> {
+    return false;
+  }
 }

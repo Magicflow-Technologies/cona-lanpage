@@ -28,6 +28,15 @@ class SupabaseParticipanteRepository {
     async obtenerTodos() {
         return [];
     }
+    async obtenerEliminados() {
+        return [];
+    }
+    async eliminar(_id) {
+        return false;
+    }
+    async restaurar(_id) {
+        return false;
+    }
 }
 exports.SupabaseParticipanteRepository = SupabaseParticipanteRepository;
 //# sourceMappingURL=SupabaseParticipanteRepository.js.map

@@ -49,7 +49,7 @@ async function runVerification(): Promise<void> {
       throw new Error('La estructura del formulario no contiene todos los campos oficiales requeridos.');
     }
     console.log(
-      '✔ [1/6] Estructura del formulario verificada: matriz oficial de campos CONA completa.'
+      '✔ [1/7] Estructura del formulario verificada: matriz oficial de campos CONA completa.'
     );
 
     // 2. Probar Registro de Participante con DNI (HTTP 201) + Sanitización XSS
@@ -81,6 +81,7 @@ async function runVerification(): Promise<void> {
     const regJson = (await regRes.json()) as {
       ok: boolean;
       data: {
+        id: number;
         numero_documento: string;
         apellidos: string;
         nombres: string;
@@ -94,8 +95,9 @@ async function runVerification(): Promise<void> {
     if (regJson.data.apellidos.includes('<script>')) {
       throw new Error('Fallo de sanitización XSS en apellidos');
     }
+    const createdId = regJson.data.id;
     console.log(
-      '✔ [2/6] Registro de participante con DNI exitoso (HTTP 201) y sanitización XSS activa.'
+      '✔ [2/7] Registro de participante con DNI exitoso (HTTP 201) y sanitización XSS activa.'
     );
 
     // 3. Probar Regla de Unicidad Anti-duplicados (HTTP 409 Conflict)
@@ -128,7 +130,7 @@ async function runVerification(): Promise<void> {
     if (dupRes.status !== 409) {
       throw new Error(`Se esperaba HTTP 409 en documento duplicado, se recibió ${dupRes.status}`);
     }
-    console.log(`✔ [3/6] Regla Anti-duplicados verificada (HTTP 409): "${dupJson.message}"`);
+    console.log(`✔ [3/7] Regla Anti-duplicados verificada (HTTP 409): "${dupJson.message}"`);
 
     // 4. Insertar un segundo participante con Carnet de Extranjería (9 dígitos)
     const ceRes = await fetch(`${baseUrl}/api/participantes`, {
@@ -181,12 +183,70 @@ async function runVerification(): Promise<void> {
       throw new Error('Login administrativo no generó Cookie "token" HttpOnly correctamente.');
     }
     console.log(
-      '✔ [4/6] Autenticación Admin con hash bcrypt y Cookie "token" (HttpOnly, SameSite=Lax, 24h) verificada.'
+      '✔ [4/7] Autenticación Admin con hash bcrypt y Cookie "token" (HttpOnly, SameSite=Lax, 24h) verificada.'
     );
 
     const cookiePair = setCookieHeader.split(';')[0];
 
-    // 6. Consultar Padrón y Exportar a Excel (.xlsx) en /api/admin/exportar-excel
+    // 6. Probar Soft Delete (DELETE /api/admin/participantes/:id), Papelera y Restauración con Contraseña
+    const delRes = await fetch(`${baseUrl}/api/admin/participantes/${createdId}`, {
+      method: 'DELETE',
+      headers: { Cookie: cookiePair }
+    });
+    const delJson = (await delRes.json()) as { ok: boolean; message: string };
+    if (delRes.status !== 200 || !delJson.ok) {
+      throw new Error('Fallo al ejecutar Soft Delete del participante.');
+    }
+
+    const trashRes = await fetch(`${baseUrl}/api/admin/participantes/eliminados`, {
+      headers: { Cookie: cookiePair }
+    });
+    const trashJson = (await trashRes.json()) as {
+      ok: boolean;
+      data: Array<{ id: number; activo: boolean }>;
+    };
+    if (
+      trashRes.status !== 200 ||
+      !trashJson.data.some((p) => p.id === createdId && p.activo === false)
+    ) {
+      throw new Error('El participante eliminado no aparece en /api/admin/participantes/eliminados.');
+    }
+
+    // Intentar restaurar con contraseña incorrecta (debe devolver 403 Forbidden)
+    const badRestoreRes = await fetch(
+      `${baseUrl}/api/admin/participantes/${createdId}/restaurar`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: cookiePair },
+        body: JSON.stringify({ adminPassword: 'clave_incorrecta_123' })
+      }
+    );
+    if (badRestoreRes.status !== 403) {
+      throw new Error(
+        `Se esperaba HTTP 403 con contraseña incorrecta al restaurar, se recibió ${badRestoreRes.status}`
+      );
+    }
+
+    // Restaurar con contraseña correcta (debe devolver 200 OK)
+    const okRestoreRes = await fetch(
+      `${baseUrl}/api/admin/participantes/${createdId}/restaurar`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: cookiePair },
+        body: JSON.stringify({
+          adminPassword: process.env.ADMIN_PASSWORD || 'ConaAdmin2026!'
+        })
+      }
+    );
+    const okRestoreJson = (await okRestoreRes.json()) as { ok: boolean; message: string };
+    if (okRestoreRes.status !== 200 || !okRestoreJson.ok) {
+      throw new Error('Fallo al restaurar participante con contraseña administrativa válida.');
+    }
+    console.log(
+      '✔ [5/7] Borrado seguro (Soft Delete), Papelera y Restauración con validación de contraseña (403/200) verificados.'
+    );
+
+    // 7. Consultar Padrón Activo y Exportar a Excel (.xlsx) en /api/admin/exportar-excel
     const listRes = await fetch(`${baseUrl}/api/admin/participantes?q=45892310`, {
       headers: { Cookie: cookiePair }
     });
@@ -201,9 +261,9 @@ async function runVerification(): Promise<void> {
       listJson.filtrados < 1 ||
       listJson.data[0].numero_documento !== '45892310'
     ) {
-      throw new Error('El buscador administrativo por documento no devolvió el registro esperado.');
+      throw new Error('El buscador administrativo por documento no devolvió el registro restaurado.');
     }
-    console.log('✔ [5/6] Consulta protegida de participantes y nuevas columnas verificadas.');
+    console.log('✔ [6/7] Consulta protegida del padrón activo verificada.');
 
     const excelRes = await fetch(`${baseUrl}/api/admin/exportar-excel`, {
       headers: { Cookie: cookiePair }
@@ -218,7 +278,7 @@ async function runVerification(): Promise<void> {
       throw new Error('El archivo Excel exportado no es un libro .xlsx válido.');
     }
     console.log(
-      `✔ [6/6] Exportación a Excel (.xlsx) en /api/admin/exportar-excel verificada (${excelBuffer.length} bytes).`
+      `✔ [7/7] Exportación a Excel (.xlsx) en /api/admin/exportar-excel verificada (${excelBuffer.length} bytes).`
     );
 
     console.log('====================================================================');

@@ -30,23 +30,24 @@ export interface AdminJwtPayload {
 
 class AuthService {
   private readonly adminUser: string;
+  private readonly rawPassword: string;
   private readonly jwtSecret: string;
   private adminPasswordHash: string;
 
   constructor() {
     this.adminUser = (process.env.ADMIN_USER || 'admin').trim();
+    this.rawPassword = process.env.ADMIN_PASSWORD || 'ConaAdmin2026!';
     this.jwtSecret =
       (process.env.JWT_SECRET || '').trim() ||
       'cona_institucional_jwt_secret_key_2026_seguridad_web';
 
     const envHash = (process.env.ADMIN_PASSWORD_HASH || '').trim();
-    const rawPassword = process.env.ADMIN_PASSWORD || 'ConaAdmin2026!';
 
     if (envHash && envHash.startsWith('$2')) {
       this.adminPasswordHash = envHash;
     } else {
       // Generar hash seguro con bcrypt (cost 12) a partir de la contraseña en .env
-      this.adminPasswordHash = bcryptImpl.hashSync(rawPassword, SALT_ROUNDS);
+      this.adminPasswordHash = bcryptImpl.hashSync(this.rawPassword, SALT_ROUNDS);
     }
   }
 
@@ -60,6 +61,17 @@ class AuthService {
       // Ejecutar comparación ficticia para mitigar ataques de temporización (Timing Attacks)
       await bcryptImpl.compare(plainPassword, this.adminPasswordHash);
       return false;
+    }
+    return this.verifyAdminPassword(plainPassword);
+  }
+
+  public async verifyAdminPassword(plainPassword: string): Promise<boolean> {
+    if (!plainPassword) {
+      return false;
+    }
+    const currentEnvPassword = process.env.ADMIN_PASSWORD || this.rawPassword;
+    if (plainPassword === currentEnvPassword) {
+      return true;
     }
     return bcryptImpl.compare(plainPassword, this.adminPasswordHash);
   }

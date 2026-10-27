@@ -27,7 +27,9 @@ CREATE TABLE IF NOT EXISTS participantes (
     hijos_json TEXT NOT NULL DEFAULT '[]',
     consentimiento_datos_personales INTEGER NOT NULL CHECK (consentimiento_datos_personales IN (0, 1)) DEFAULT 1,
     estado_sorteo TEXT NOT NULL DEFAULT 'Participando',
-    fecha_registro TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+    fecha_registro TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    activo INTEGER NOT NULL DEFAULT 1,
+    fecha_eliminacion TEXT NULL
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_participantes_tipo_num_doc_unique
@@ -38,3 +40,6 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_participantes_numero_documento_unique
 
 CREATE INDEX IF NOT EXISTS idx_participantes_fecha
     ON participantes (fecha_registro DESC);
+
+CREATE INDEX IF NOT EXISTS idx_participantes_activo
+    ON participantes (activo);

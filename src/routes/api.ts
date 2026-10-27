@@ -15,6 +15,21 @@ router.get('/admin/session', container.adminController.session);
 
 // Rutas administrativas protegidas por JWT en Cookie HttpOnly
 router.get('/admin/participantes', requireAdminAuth, container.adminController.listarParticipantes);
+router.get(
+  '/admin/participantes/eliminados',
+  requireAdminAuth,
+  container.adminController.listarEliminados
+);
+router.delete(
+  '/admin/participantes/:id',
+  requireAdminAuth,
+  container.adminController.eliminarParticipante
+);
+router.post(
+  '/admin/participantes/:id/restaurar',
+  requireAdminAuth,
+  container.adminController.restaurarParticipante
+);
 router.get('/admin/exportar-excel', requireAdminAuth, container.adminController.exportarExcel);
 router.get('/admin/export-excel', requireAdminAuth, container.adminController.exportarExcel);
 

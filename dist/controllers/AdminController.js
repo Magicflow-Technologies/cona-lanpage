@@ -129,19 +129,24 @@ class AdminController {
     }
     /**
      * GET /api/admin/participantes
+     * Retorna los participantes activos (`activo = 1`) y el conteo de eliminados.
      */
     listarParticipantes = async (req, res) => {
         try {
-            const todos = await this.repository.obtenerTodos();
+            const [todosActivos, eliminados] = await Promise.all([
+                this.repository.obtenerTodos(),
+                this.repository.obtenerEliminados()
+            ]);
             const search = String(req.query.q || '')
                 .trim()
                 .toLowerCase();
             const fechaDesde = String(req.query.desde || '').trim();
             const fechaHasta = String(req.query.hasta || '').trim();
-            const filtrados = this.filterRecords(todos, search, fechaDesde, fechaHasta);
+            const filtrados = this.filterRecords(todosActivos, search, fechaDesde, fechaHasta);
             res.status(200).json({
                 ok: true,
-                total: todos.length,
+                total: todosActivos.length,
+                eliminadosCount: eliminados.length,
                 filtrados: filtrados.length,
                 data: filtrados
             });
@@ -156,7 +161,124 @@ class AdminController {
         }
     };
     /**
+     * GET /api/admin/participantes/eliminados
+     * Retorna la lista de registros en papelera (`activo = 0`).
+     */
+    listarEliminados = async (req, res) => {
+        try {
+            const eliminados = await this.repository.obtenerEliminados();
+            const search = String(req.query.q || '')
+                .trim()
+                .toLowerCase();
+            const fechaDesde = String(req.query.desde || '').trim();
+            const fechaHasta = String(req.query.hasta || '').trim();
+            const filtrados = this.filterRecords(eliminados, search, fechaDesde, fechaHasta);
+            res.status(200).json({
+                ok: true,
+                total: eliminados.length,
+                filtrados: filtrados.length,
+                data: filtrados
+            });
+        }
+        catch (error) {
+            console.error('[AdminController.listarEliminados] Error:', error);
+            res.status(500).json({
+                ok: false,
+                code: 'INTERNAL_ERROR',
+                message: 'No se pudo obtener el listado de registros en papelera.'
+            });
+        }
+    };
+    /**
+     * DELETE /api/admin/participantes/:id
+     * Borrado lógico (Soft Delete): `UPDATE participantes SET activo = 0, fecha_eliminacion = datetime('now') WHERE id = ?`
+     */
+    eliminarParticipante = async (req, res) => {
+        try {
+            const id = Number.parseInt(String(req.params.id || ''), 10);
+            if (Number.isNaN(id) || id <= 0) {
+                res.status(400).json({
+                    ok: false,
+                    code: 'INVALID_ID',
+                    message: 'ID de participante inválido.'
+                });
+                return;
+            }
+            const deleted = await this.repository.eliminar(id);
+            if (!deleted) {
+                res.status(404).json({
+                    ok: false,
+                    code: 'NOT_FOUND',
+                    message: 'No se encontró el participante especificado.'
+                });
+                return;
+            }
+            res.status(200).json({
+                ok: true,
+                message: 'Registro enviado a papelera.'
+            });
+        }
+        catch (error) {
+            console.error('[AdminController.eliminarParticipante] Error:', error);
+            res.status(500).json({
+                ok: false,
+                code: 'INTERNAL_ERROR',
+                message: 'Error al enviar el registro a la papelera.'
+            });
+        }
+    };
+    /**
+     * POST /api/admin/participantes/:id/restaurar
+     * Valida `adminPassword` contra `ADMIN_PASSWORD` y ejecuta:
+     * `UPDATE participantes SET activo = 1, fecha_eliminacion = NULL WHERE id = ?`
+     */
+    restaurarParticipante = async (req, res) => {
+        try {
+            const id = Number.parseInt(String(req.params.id || ''), 10);
+            if (Number.isNaN(id) || id <= 0) {
+                res.status(400).json({
+                    ok: false,
+                    code: 'INVALID_ID',
+                    message: 'ID de participante inválido.'
+                });
+                return;
+            }
+            const adminPassword = String(req.body?.adminPassword || '');
+            const isPasswordValid = await auth_1.authService.verifyAdminPassword(adminPassword);
+            if (!isPasswordValid) {
+                res.status(403).json({
+                    ok: false,
+                    error: 'Contraseña administrativa incorrecta para autorizar la restauración.',
+                    message: 'Contraseña administrativa incorrecta para autorizar la restauración.'
+                });
+                return;
+            }
+            const restored = await this.repository.restaurar(id);
+            if (!restored) {
+                res.status(404).json({
+                    ok: false,
+                    code: 'NOT_FOUND',
+                    message: 'No se encontró el registro especificado en la papelera.'
+                });
+                return;
+            }
+            res.status(200).json({
+                ok: true,
+                message: 'Registro restaurado exitosamente en el padrón activo.'
+            });
+        }
+        catch (error) {
+            console.error('[AdminController.restaurarParticipante] Error:', error);
+            res.status(500).json({
+                ok: false,
+                code: 'INTERNAL_ERROR',
+                message: 'Error al restaurar el registro.'
+            });
+        }
+    };
+    /**
      * GET /api/admin/exportar-excel (y alias /api/admin/export-excel)
+     * Exporta por defecto únicamente los participantes activos (`WHERE activo = 1`).
      */
     exportarExcel = async (req, res) => {
         try {

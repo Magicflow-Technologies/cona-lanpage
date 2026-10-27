@@ -26,11 +26,22 @@ interface ParticipanteRow {
   consentimiento_datos_personales: number;
   estado_sorteo: string;
   fecha_registro: string;
+  activo?: number;
+  fecha_eliminacion?: string | null;
 }
+
+const SELECT_COLUMNS = `
+  id, tipo_documento, numero_documento, apellidos, nombres,
+  celular, correo, direccion, departamento, provincia, distrito, ubigeo,
+  ruc_empresa, nombre_proyecto, categoria, especialidad,
+  hijos_menores, hijos_json, consentimiento_datos_personales,
+  estado_sorteo, fecha_registro, activo, fecha_eliminacion
+`;
 
 /**
  * Adaptador de Persistencia SQLite implementando IParticipanteRepository sobre `cona_campana.db`.
- * Utiliza Sentencias Preparadas (`?`) para prevenir Inyección SQL (SQLi) y garantiza unicidad de documento.
+ * Utiliza Sentencias Preparadas (`?`) para prevenir Inyección SQL (SQLi), garantiza unicidad de documento
+ * y soporta borrado lógico (Soft Delete) y restauración.
  */
 export class SqliteParticipanteRepository implements IParticipanteRepository {
   private readonly db: SqliteConnection;
@@ -80,6 +91,8 @@ export class SqliteParticipanteRepository implements IParticipanteRepository {
       consentimiento_datos_personales: Boolean(row.consentimiento_datos_personales),
       estado_sorteo: (row.estado_sorteo as 'Participando' | 'Excluido') || 'Participando',
       fecha_registro: row.fecha_registro,
+      activo: row.activo === undefined ? true : Number(row.activo) === 1,
+      fecha_eliminacion: row.fecha_eliminacion ?? null,
       dni: row.numero_documento,
       nombres_apellidos: nombresApellidos
     };
@@ -87,12 +100,7 @@ export class SqliteParticipanteRepository implements IParticipanteRepository {
 
   public async buscarPorDni(numeroDocumento: string): Promise<Participante | null> {
     const stmt = this.db.prepare(`
-      SELECT
-        id, tipo_documento, numero_documento, apellidos, nombres,
-        celular, correo, direccion, departamento, provincia, distrito, ubigeo,
-        ruc_empresa, nombre_proyecto, categoria, especialidad,
-        hijos_menores, hijos_json, consentimiento_datos_personales,
-        estado_sorteo, fecha_registro
+      SELECT ${SELECT_COLUMNS}
       FROM participantes
       WHERE numero_documento = ?
       LIMIT 1
@@ -115,12 +123,7 @@ export class SqliteParticipanteRepository implements IParticipanteRepository {
         : 'DNI';
 
     const stmt = this.db.prepare(`
-      SELECT
-        id, tipo_documento, numero_documento, apellidos, nombres,
-        celular, correo, direccion, departamento, provincia, distrito, ubigeo,
-        ruc_empresa, nombre_proyecto, categoria, especialidad,
-        hijos_menores, hijos_json, consentimiento_datos_personales,
-        estado_sorteo, fecha_registro
+      SELECT ${SELECT_COLUMNS}
       FROM participantes
       WHERE numero_documento = ? OR (tipo_documento = ? AND numero_documento = ?)
       LIMIT 1
@@ -138,13 +141,76 @@ export class SqliteParticipanteRepository implements IParticipanteRepository {
       data.tipo_documento,
       data.numero_documento
     );
-    if (existente) {
-      throw new DuplicateDocumentError(data.numero_documento, data.tipo_documento);
-    }
 
     const fechaRegistroIso = new Date().toISOString();
     const hijosJson =
       data.hijos_json || JSON.stringify(data.hijos_detalle ?? []);
+
+    if (existente) {
+      if (existente.activo) {
+        throw new DuplicateDocumentError(data.numero_documento, data.tipo_documento);
+      }
+
+      // Si el registro estaba en la papelera (activo = 0), permitir reactivación actualizando sus datos
+      const reactivateStmt = this.db.prepare(`
+        UPDATE participantes
+        SET
+          tipo_documento = ?,
+          numero_documento = ?,
+          apellidos = ?,
+          nombres = ?,
+          celular = ?,
+          correo = ?,
+          direccion = ?,
+          departamento = ?,
+          provincia = ?,
+          distrito = ?,
+          ubigeo = ?,
+          ruc_empresa = ?,
+          nombre_proyecto = ?,
+          categoria = ?,
+          especialidad = ?,
+          hijos_menores = ?,
+          hijos_json = ?,
+          consentimiento_datos_personales = ?,
+          estado_sorteo = 'Participando',
+          fecha_registro = ?,
+          activo = 1,
+          fecha_eliminacion = NULL
+        WHERE id = ?
+      `);
+
+      reactivateStmt.run(
+        data.tipo_documento || 'DNI',
+        data.numero_documento,
+        data.apellidos,
+        data.nombres,
+        data.celular,
+        data.correo || '',
+        data.direccion,
+        data.departamento,
+        data.provincia,
+        data.distrito,
+        data.ubigeo || '',
+        data.ruc_empresa || '',
+        data.nombre_proyecto || '',
+        data.categoria,
+        data.especialidad || '',
+        data.hijos_menores ?? 0,
+        hijosJson,
+        data.consentimiento_datos_personales ? 1 : 0,
+        fechaRegistroIso,
+        existente.id
+      );
+
+      const selectReactivatedStmt = this.db.prepare(`
+        SELECT ${SELECT_COLUMNS}
+        FROM participantes
+        WHERE id = ?
+      `);
+      const reactivatedRow = selectReactivatedStmt.get(existente.id) as ParticipanteRow;
+      return this.mapRowToEntity(reactivatedRow);
+    }
 
     const insertStmt = this.db.prepare(`
       INSERT INTO participantes (
@@ -167,8 +233,10 @@ export class SqliteParticipanteRepository implements IParticipanteRepository {
         hijos_json,
         consentimiento_datos_personales,
         estado_sorteo,
-        fecha_registro
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        fecha_registro,
+        activo,
+        fecha_eliminacion
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NULL)
     `);
 
     try {
@@ -197,12 +265,7 @@ export class SqliteParticipanteRepository implements IParticipanteRepository {
 
       const newId = Number(result.lastInsertRowid);
       const selectByIdStmt = this.db.prepare(`
-        SELECT
-          id, tipo_documento, numero_documento, apellidos, nombres,
-          celular, correo, direccion, departamento, provincia, distrito, ubigeo,
-          ruc_empresa, nombre_proyecto, categoria, especialidad,
-          hijos_menores, hijos_json, consentimiento_datos_personales,
-          estado_sorteo, fecha_registro
+        SELECT ${SELECT_COLUMNS}
         FROM participantes
         WHERE id = ?
       `);
@@ -218,19 +281,59 @@ export class SqliteParticipanteRepository implements IParticipanteRepository {
     }
   }
 
+  /**
+   * Obtiene todos los registros activos (`WHERE activo = 1`).
+   */
   public async obtenerTodos(): Promise<Participante[]> {
     const stmt = this.db.prepare(`
-      SELECT
-        id, tipo_documento, numero_documento, apellidos, nombres,
-        celular, correo, direccion, departamento, provincia, distrito, ubigeo,
-        ruc_empresa, nombre_proyecto, categoria, especialidad,
-        hijos_menores, hijos_json, consentimiento_datos_personales,
-        estado_sorteo, fecha_registro
+      SELECT ${SELECT_COLUMNS}
       FROM participantes
+      WHERE activo = 1
       ORDER BY datetime(fecha_registro) DESC, id DESC
     `);
 
     const rows = stmt.all() as ParticipanteRow[];
     return rows.map((row) => this.mapRowToEntity(row));
+  }
+
+  /**
+   * Obtiene todos los registros en la papelera (`WHERE activo = 0`).
+   */
+  public async obtenerEliminados(): Promise<Participante[]> {
+    const stmt = this.db.prepare(`
+      SELECT ${SELECT_COLUMNS}
+      FROM participantes
+      WHERE activo = 0
+      ORDER BY datetime(fecha_eliminacion) DESC, id DESC
+    `);
+
+    const rows = stmt.all() as ParticipanteRow[];
+    return rows.map((row) => this.mapRowToEntity(row));
+  }
+
+  /**
+   * Borrado lógico (Soft Delete): envía el registro a la papelera.
+   */
+  public async eliminar(id: number): Promise<boolean> {
+    const stmt = this.db.prepare(`
+      UPDATE participantes
+      SET activo = 0, fecha_eliminacion = datetime('now')
+      WHERE id = ?
+    `);
+    const result = stmt.run(id);
+    return Number(result.changes) > 0;
+  }
+
+  /**
+   * Restaura un registro eliminado de vuelta al padrón activo.
+   */
+  public async restaurar(id: number): Promise<boolean> {
+    const stmt = this.db.prepare(`
+      UPDATE participantes
+      SET activo = 1, fecha_eliminacion = NULL
+      WHERE id = ?
+    `);
+    const result = stmt.run(id);
+    return Number(result.changes) > 0;
   }
 }

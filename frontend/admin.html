@@ -169,7 +169,7 @@
       justify-content: space-between;
       flex-wrap: wrap;
       gap: 14px;
-      margin-bottom: 22px;
+      margin-bottom: 18px;
     }
     .dash-header h1 {
       margin: 0;
@@ -231,6 +231,46 @@
     }
     .btn-excel:hover { transform: translateY(-1px); }
     .btn-excel:disabled { opacity: .6; cursor: wait; }
+
+    /* Selector de Pestañas: Padrón Activo vs Papelera */
+    .view-tabs {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .tab-btn {
+      appearance: none;
+      border: 1.5px solid var(--border);
+      background: #fff;
+      color: var(--cona-blue);
+      border-radius: 12px;
+      padding: 10px 18px;
+      font: inherit;
+      font-size: 13.5px;
+      font-weight: 800;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all .16s ease;
+    }
+    .tab-btn:hover {
+      border-color: var(--cona-blue);
+      background: #f5f9ff;
+    }
+    .tab-btn.is-active {
+      background: var(--cona-blue);
+      color: #fff;
+      border-color: var(--cona-blue);
+      box-shadow: 0 8px 20px rgba(0,37,84,.18);
+    }
+    .tab-btn.trash-tab.is-active {
+      background: var(--danger);
+      border-color: var(--danger);
+      box-shadow: 0 8px 20px rgba(180,35,24,.22);
+    }
 
     .stats-grid {
       display: grid;
@@ -311,6 +351,8 @@
       font-size: 13px;
       font-weight: 700;
       color: var(--cona-blue);
+      flex-wrap: wrap;
+      gap: 8px;
     }
     .table-responsive {
       width: 100%;
@@ -319,7 +361,7 @@
     table {
       width: 100%;
       border-collapse: collapse;
-      min-width: 960px;
+      min-width: 1040px;
       font-size: 13.5px;
     }
     thead th {
@@ -375,11 +417,9 @@
       background: #e6f6ee;
       color: var(--success);
     }
-    .promo-meta {
-      display: block;
-      font-size: 11px;
-      color: var(--muted);
-      margin-top: 3px;
+    .status-deleted {
+      background: #fef3f2;
+      color: var(--danger);
     }
     .empty-cell {
       text-align: center;
@@ -387,6 +427,121 @@
       color: var(--muted);
       font-weight: 600;
     }
+
+    /* Botones de Acción en Tabla */
+    .btn-delete-row {
+      appearance: none;
+      border: 1px solid #fecdca;
+      background: #fef3f2;
+      color: var(--danger);
+      border-radius: 9px;
+      padding: 7px 12px;
+      font: inherit;
+      font-size: 12.5px;
+      font-weight: 800;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+      transition: background .15s ease, color .15s ease, border-color .15s ease;
+    }
+    .btn-delete-row:hover {
+      background: var(--danger);
+      border-color: var(--danger);
+      color: #fff;
+    }
+    .btn-restore-row {
+      appearance: none;
+      border: 1px solid #abefc6;
+      background: #ecfdf3;
+      color: var(--success);
+      border-radius: 9px;
+      padding: 7px 12px;
+      font: inherit;
+      font-size: 12.5px;
+      font-weight: 800;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+      transition: background .15s ease, color .15s ease, border-color .15s ease;
+    }
+    .btn-restore-row:hover {
+      background: var(--success);
+      border-color: var(--success);
+      color: #fff;
+    }
+
+    /* Modales Administrativos */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 22, 44, 0.56);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 100;
+    }
+    .modal-backdrop[hidden] {
+      display: none !important;
+    }
+    .modal-dialog {
+      background: #fff;
+      width: 100%;
+      max-width: 440px;
+      border-radius: 20px;
+      padding: 26px 24px;
+      box-shadow: 0 24px 60px rgba(0, 25, 60, 0.28);
+      border: 1px solid rgba(0, 37, 84, 0.1);
+    }
+    .modal-dialog h2 {
+      margin: 0 0 8px;
+      color: var(--cona-blue);
+      font-size: 20px;
+    }
+    .modal-dialog p {
+      margin: 0 0 18px;
+      color: var(--muted);
+      font-size: 13.5px;
+      line-height: 1.5;
+    }
+    .modal-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    .btn-danger-solid {
+      appearance: none;
+      border: 0;
+      background: var(--danger);
+      color: #fff;
+      border-radius: 11px;
+      padding: 10px 16px;
+      font: inherit;
+      font-size: 13.5px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .btn-danger-solid:disabled { opacity: .6; cursor: wait; }
+    .btn-success-solid {
+      appearance: none;
+      border: 0;
+      background: var(--success);
+      color: #fff;
+      border-radius: 11px;
+      padding: 10px 16px;
+      font: inherit;
+      font-size: 13.5px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .btn-success-solid:disabled { opacity: .6; cursor: wait; }
 
     .toast {
       position: fixed;
@@ -397,7 +552,7 @@
       border-radius: 12px;
       padding: 14px 16px;
       max-width: min(390px, calc(100vw - 40px));
-      z-index: 20;
+      z-index: 120;
       transform: translateY(120px);
       opacity: 0;
       transition: .25s ease;
@@ -461,9 +616,19 @@
       </div>
     </div>
 
+    <!-- Pestañas de Vista: Padrón Activo vs Papelera de Eliminados -->
+    <div class="view-tabs" role="tablist" aria-label="Cambiar entre Padrón Activo y Papelera">
+      <button class="tab-btn is-active" id="tabActivosBtn" type="button" role="tab" aria-selected="true">
+        <span>📋 Padrón Activo (<span id="activeCountBadge">0</span>)</span>
+      </button>
+      <button class="tab-btn trash-tab" id="tabEliminadosBtn" type="button" role="tab" aria-selected="false">
+        <span>🗑 Papelera de Eliminados (<span id="trashCountBadge">0</span>)</span>
+      </button>
+    </div>
+
     <div class="stats-grid">
       <div class="stat-card">
-        <div class="stat-label">Total Registrados</div>
+        <div class="stat-label">Total Activos</div>
         <div class="stat-value" id="statTotal">0</div>
       </div>
       <div class="stat-card green">
@@ -502,7 +667,7 @@
     <section class="table-card">
       <div class="table-meta">
         <span id="resultsCounter">Mostrando 0 participantes registrados</span>
-        <span>Seguridad activa: SQLi Prepared Statements · Cookie JWT HttpOnly</span>
+        <span>Seguridad activa: SQLi Prepared Statements · Cookie JWT HttpOnly · Soft Delete</span>
       </div>
       <div class="table-responsive">
         <table>
@@ -517,11 +682,12 @@
               <th>Correo Electrónico</th>
               <th>Fecha y Hora de Registro</th>
               <th>Estado Sorteo</th>
+              <th>Acciones</th>
             </tr>
           </thead>
           <tbody id="participantsTableBody">
             <tr>
-              <td colspan="9" class="empty-cell">Cargando registros…</td>
+              <td colspan="10" class="empty-cell">Cargando registros…</td>
             </tr>
           </tbody>
         </table>
@@ -529,11 +695,42 @@
     </section>
   </main>
 
+  <!-- MODAL DE CONFIRMACIÓN DE BORRADO SEGURO (SOFT DELETE) -->
+  <div class="modal-backdrop" id="deleteConfirmModal" role="dialog" aria-modal="true" aria-labelledby="deleteModalTitle" hidden>
+    <div class="modal-dialog">
+      <h2 id="deleteModalTitle">Enviar registro a papelera</h2>
+      <p id="deleteModalDesc">¿Estás seguro de que deseas enviar este participante a la papelera de eliminados? Podrás restaurarlo posteriormente con autorización administrativa.</p>
+      <div class="modal-actions">
+        <button type="button" class="btn-outline" id="cancelDeleteBtn">Cancelar</button>
+        <button type="button" class="btn-danger-solid" id="confirmDeleteBtn">🗑 Sí, Eliminar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE REINGRESO / RESTAURACIÓN CON CONTRASEÑA ADMINISTRATIVA -->
+  <div class="modal-backdrop" id="restoreModal" role="dialog" aria-modal="true" aria-labelledby="restoreModalTitle" hidden>
+    <div class="modal-dialog">
+      <h2 id="restoreModalTitle">Restaurar participante al padrón activo</h2>
+      <p id="restoreModalDesc">Este registro volverá a figurar activo en el padrón oficial y en la exportación de Excel.</p>
+      <div class="error-banner" id="restoreErrorBox" role="alert" hidden></div>
+      <form id="restoreForm">
+        <div class="field">
+          <label for="restoreAdminPassword">Ingresa tu contraseña de administrador para autorizar el reingreso</label>
+          <input id="restoreAdminPassword" name="adminPassword" type="password" autocomplete="current-password" required placeholder="Contraseña administrativa" />
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-outline" id="cancelRestoreBtn">Cancelar</button>
+          <button type="submit" class="btn-success-solid" id="confirmRestoreBtn">Confirmar Reingreso</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <div class="toast" id="adminToast" role="status" aria-live="polite">
     <strong id="adminToastTitle"></strong>
     <span id="adminToastText"></span>
   </div>
 
-  <script type="module" src="dist/admin.js?v=20261027_01"></script>
+  <script type="module" src="dist/admin.js?v=20261027_02"></script>
 </body>
 </html>

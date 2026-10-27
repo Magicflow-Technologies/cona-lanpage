@@ -13,6 +13,9 @@ router.post('/admin/logout', container_1.container.adminController.logout);
 router.get('/admin/session', container_1.container.adminController.session);
 // Rutas administrativas protegidas por JWT en Cookie HttpOnly
 router.get('/admin/participantes', auth_1.requireAdminAuth, container_1.container.adminController.listarParticipantes);
+router.get('/admin/participantes/eliminados', auth_1.requireAdminAuth, container_1.container.adminController.listarEliminados);
+router.delete('/admin/participantes/:id', auth_1.requireAdminAuth, container_1.container.adminController.eliminarParticipante);
+router.post('/admin/participantes/:id/restaurar', auth_1.requireAdminAuth, container_1.container.adminController.restaurarParticipante);
 router.get('/admin/exportar-excel', auth_1.requireAdminAuth, container_1.container.adminController.exportarExcel);
 router.get('/admin/export-excel', auth_1.requireAdminAuth, container_1.container.adminController.exportarExcel);
 exports.default = router;

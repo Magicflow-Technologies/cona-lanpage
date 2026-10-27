@@ -9,6 +9,7 @@ interface SessionResponse {
 interface ListParticipantesResponse {
   ok: boolean;
   total: number;
+  eliminadosCount?: number;
   filtrados: number;
   data: ParticipanteRecord[];
   message?: string;
@@ -25,6 +26,11 @@ class AdminPortalController {
 
   private readonly adminUserBadge: HTMLElement;
   private readonly logoutBtn: HTMLButtonElement;
+  private readonly tabActivosBtn: HTMLButtonElement;
+  private readonly tabEliminadosBtn: HTMLButtonElement;
+  private readonly activeCountBadge: HTMLElement;
+  private readonly trashCountBadge: HTMLElement;
+
   private readonly searchInput: HTMLInputElement;
   private readonly fechaDesdeInput: HTMLInputElement;
   private readonly fechaHastaInput: HTMLInputElement;
@@ -38,11 +44,29 @@ class AdminPortalController {
   private readonly statHoy: HTMLElement;
   private readonly tableBody: HTMLElement;
   private readonly resultsCounter: HTMLElement;
+
+  private readonly deleteConfirmModal: HTMLElement;
+  private readonly deleteModalDesc: HTMLElement;
+  private readonly cancelDeleteBtn: HTMLButtonElement;
+  private readonly confirmDeleteBtn: HTMLButtonElement;
+
+  private readonly restoreModal: HTMLElement;
+  private readonly restoreModalDesc: HTMLElement;
+  private readonly restoreErrorBox: HTMLElement;
+  private readonly restoreForm: HTMLFormElement;
+  private readonly restoreAdminPasswordInput: HTMLInputElement;
+  private readonly cancelRestoreBtn: HTMLButtonElement;
+  private readonly confirmRestoreBtn: HTMLButtonElement;
+
   private readonly toastEl: HTMLElement;
   private readonly toastTitleEl: HTMLElement;
   private readonly toastTextEl: HTMLElement;
 
-  private allRecords: ParticipanteRecord[] = [];
+  private activeRecords: ParticipanteRecord[] = [];
+  private deletedRecords: ParticipanteRecord[] = [];
+  private currentTab: 'activos' | 'eliminados' = 'activos';
+  private pendingDeleteId: number | null = null;
+  private pendingRestoreId: number | null = null;
   private toastTimer: number | null = null;
 
   constructor() {
@@ -56,6 +80,11 @@ class AdminPortalController {
 
     this.adminUserBadge = document.getElementById('adminUserBadge') as HTMLElement;
     this.logoutBtn = document.getElementById('logoutBtn') as HTMLButtonElement;
+    this.tabActivosBtn = document.getElementById('tabActivosBtn') as HTMLButtonElement;
+    this.tabEliminadosBtn = document.getElementById('tabEliminadosBtn') as HTMLButtonElement;
+    this.activeCountBadge = document.getElementById('activeCountBadge') as HTMLElement;
+    this.trashCountBadge = document.getElementById('trashCountBadge') as HTMLElement;
+
     this.searchInput = document.getElementById('searchInput') as HTMLInputElement;
     this.fechaDesdeInput = document.getElementById('fechaDesde') as HTMLInputElement;
     this.fechaHastaInput = document.getElementById('fechaHasta') as HTMLInputElement;
@@ -69,6 +98,22 @@ class AdminPortalController {
     this.statHoy = document.getElementById('statHoy') as HTMLElement;
     this.tableBody = document.getElementById('participantsTableBody') as HTMLElement;
     this.resultsCounter = document.getElementById('resultsCounter') as HTMLElement;
+
+    this.deleteConfirmModal = document.getElementById('deleteConfirmModal') as HTMLElement;
+    this.deleteModalDesc = document.getElementById('deleteModalDesc') as HTMLElement;
+    this.cancelDeleteBtn = document.getElementById('cancelDeleteBtn') as HTMLButtonElement;
+    this.confirmDeleteBtn = document.getElementById('confirmDeleteBtn') as HTMLButtonElement;
+
+    this.restoreModal = document.getElementById('restoreModal') as HTMLElement;
+    this.restoreModalDesc = document.getElementById('restoreModalDesc') as HTMLElement;
+    this.restoreErrorBox = document.getElementById('restoreErrorBox') as HTMLElement;
+    this.restoreForm = document.getElementById('restoreForm') as HTMLFormElement;
+    this.restoreAdminPasswordInput = document.getElementById(
+      'restoreAdminPassword'
+    ) as HTMLInputElement;
+    this.cancelRestoreBtn = document.getElementById('cancelRestoreBtn') as HTMLButtonElement;
+    this.confirmRestoreBtn = document.getElementById('confirmRestoreBtn') as HTMLButtonElement;
+
     this.toastEl = document.getElementById('adminToast') as HTMLElement;
     this.toastTitleEl = document.getElementById('adminToastTitle') as HTMLElement;
     this.toastTextEl = document.getElementById('adminToastText') as HTMLElement;
@@ -112,6 +157,8 @@ class AdminPortalController {
   }
 
   private showLogin(errorMessage?: string): void {
+    this.closeDeleteModal();
+    this.closeRestoreModal();
     this.dashboardView.hidden = true;
     this.loginView.hidden = false;
     if (errorMessage) {
@@ -130,6 +177,16 @@ class AdminPortalController {
       this.loginView.hidden = true;
       this.dashboardView.hidden = false;
     }
+  }
+
+  private switchTab(tab: 'activos' | 'eliminados'): void {
+    this.currentTab = tab;
+    const isActivos = tab === 'activos';
+    this.tabActivosBtn.classList.toggle('is-active', isActivos);
+    this.tabActivosBtn.setAttribute('aria-selected', String(isActivos));
+    this.tabEliminadosBtn.classList.toggle('is-active', !isActivos);
+    this.tabEliminadosBtn.setAttribute('aria-selected', String(!isActivos));
+    this.applyClientFilters();
   }
 
   private bindEvents(): void {
@@ -176,10 +233,14 @@ class AdminPortalController {
         method: 'POST',
         credentials: 'include'
       });
-      this.allRecords = [];
+      this.activeRecords = [];
+      this.deletedRecords = [];
       this.notify('Sesión cerrada', 'Has salido del portal administrativo.');
       this.showLogin();
     });
+
+    this.tabActivosBtn.addEventListener('click', () => this.switchTab('activos'));
+    this.tabEliminadosBtn.addEventListener('click', () => this.switchTab('eliminados'));
 
     this.searchInput.addEventListener('input', () => this.applyClientFilters());
     this.fechaDesdeInput.addEventListener('change', () => this.applyClientFilters());
@@ -199,16 +260,171 @@ class AdminPortalController {
     this.exportExcelBtn.addEventListener('click', () => {
       this.exportToExcel();
     });
+
+    // Eventos del Modal de Eliminación (Soft Delete)
+    this.cancelDeleteBtn.addEventListener('click', () => this.closeDeleteModal());
+    this.confirmDeleteBtn.addEventListener('click', () => this.executeSoftDelete());
+
+    // Eventos del Modal de Restauración con contraseña administrativa
+    this.cancelRestoreBtn.addEventListener('click', () => this.closeRestoreModal());
+    this.restoreForm.addEventListener('submit', (e: SubmitEvent) => {
+      e.preventDefault();
+      this.executeRestore();
+    });
+
+    // Delegación de clics en los botones Eliminar / Restaurar de la tabla
+    this.tableBody.addEventListener('click', (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const deleteBtn = target.closest<HTMLButtonElement>('[data-delete-id]');
+      if (deleteBtn) {
+        const id = Number(deleteBtn.dataset.deleteId);
+        const name = deleteBtn.dataset.participantName || `#${id}`;
+        this.openDeleteModal(id, name);
+        return;
+      }
+
+      const restoreBtn = target.closest<HTMLButtonElement>('[data-restore-id]');
+      if (restoreBtn) {
+        const id = Number(restoreBtn.dataset.restoreId);
+        const name = restoreBtn.dataset.participantName || `#${id}`;
+        this.openRestoreModal(id, name);
+      }
+    });
+  }
+
+  private openDeleteModal(id: number, participantName: string): void {
+    this.pendingDeleteId = id;
+    this.deleteModalDesc.textContent = `¿Estás seguro de que deseas enviar a "${participantName}" a la papelera de eliminados? Podrás restaurarlo posteriormente ingresando tu contraseña administrativa.`;
+    this.deleteConfirmModal.hidden = false;
+    this.confirmDeleteBtn.focus();
+  }
+
+  private closeDeleteModal(): void {
+    this.pendingDeleteId = null;
+    this.deleteConfirmModal.hidden = true;
+  }
+
+  private async executeSoftDelete(): Promise<void> {
+    if (this.pendingDeleteId === null) return;
+    const id = this.pendingDeleteId;
+    this.confirmDeleteBtn.disabled = true;
+    this.confirmDeleteBtn.textContent = 'Eliminando…';
+
+    try {
+      const res = await fetch(`/api/admin/participantes/${id}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+
+      if (res.status === 401) {
+        this.showLogin('Tu sesión expiró (HTTP 401). Inicia sesión nuevamente.');
+        return;
+      }
+
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        this.notify('No se pudo eliminar', data.message || 'Error al enviar a papelera.', true);
+        return;
+      }
+
+      this.closeDeleteModal();
+      await this.loadParticipants();
+      this.notify('Enviado a papelera', data.message || 'Registro enviado a papelera.');
+    } catch {
+      this.notify('Error de red', 'No se pudo conectar con el servidor.', true);
+    } finally {
+      this.confirmDeleteBtn.disabled = false;
+      this.confirmDeleteBtn.textContent = '🗑 Sí, Eliminar';
+    }
+  }
+
+  private openRestoreModal(id: number, participantName: string): void {
+    this.pendingRestoreId = id;
+    this.restoreErrorBox.hidden = true;
+    this.restoreAdminPasswordInput.value = '';
+    this.restoreModalDesc.textContent = `Vas a restaurar a "${participantName}" para que vuelva a figurar activo en el padrón oficial y en la exportación de Excel.`;
+    this.restoreModal.hidden = false;
+    this.restoreAdminPasswordInput.focus();
+  }
+
+  private closeRestoreModal(): void {
+    this.pendingRestoreId = null;
+    this.restoreErrorBox.hidden = true;
+    this.restoreAdminPasswordInput.value = '';
+    this.restoreModal.hidden = true;
+  }
+
+  private async executeRestore(): Promise<void> {
+    if (this.pendingRestoreId === null) return;
+    const id = this.pendingRestoreId;
+    const adminPassword = this.restoreAdminPasswordInput.value;
+
+    if (!adminPassword) {
+      this.restoreErrorBox.textContent = 'Ingresa tu contraseña de administrador.';
+      this.restoreErrorBox.hidden = false;
+      return;
+    }
+
+    this.confirmRestoreBtn.disabled = true;
+    this.confirmRestoreBtn.textContent = 'Verificando…';
+    this.restoreErrorBox.hidden = true;
+
+    try {
+      const res = await fetch(`/api/admin/participantes/${id}/restaurar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ adminPassword })
+      });
+
+      if (res.status === 401) {
+        this.showLogin('Tu sesión expiró (HTTP 401). Inicia sesión nuevamente.');
+        return;
+      }
+
+      const data = await res.json();
+      if (res.status === 403 || !res.ok || !data.ok) {
+        const errMsg =
+          data.error ||
+          data.message ||
+          'Contraseña administrativa incorrecta para autorizar la restauración.';
+        this.restoreErrorBox.textContent = errMsg;
+        this.restoreErrorBox.hidden = false;
+        this.notify('Autorización rechazada', errMsg, true);
+        this.restoreAdminPasswordInput.focus();
+        return;
+      }
+
+      this.closeRestoreModal();
+      await this.loadParticipants();
+      this.notify(
+        'Registro restaurado',
+        data.message || 'Registro restaurado exitosamente en el padrón activo.'
+      );
+    } catch {
+      this.restoreErrorBox.textContent = 'Error de conexión con el servidor.';
+      this.restoreErrorBox.hidden = false;
+    } finally {
+      this.confirmRestoreBtn.disabled = false;
+      this.confirmRestoreBtn.textContent = 'Confirmar Reingreso';
+    }
   }
 
   private async loadParticipants(announceRefresh = false): Promise<boolean> {
     try {
-      const res = await fetch('/api/admin/participantes', {
-        method: 'GET',
-        credentials: 'include'
-      });
-      if (res.status === 401) {
-        const errData = await res.json().catch(() => ({}));
+      const [activeRes, trashRes] = await Promise.all([
+        fetch('/api/admin/participantes', {
+          method: 'GET',
+          credentials: 'include'
+        }),
+        fetch('/api/admin/participantes/eliminados', {
+          method: 'GET',
+          credentials: 'include'
+        })
+      ]);
+
+      if (activeRes.status === 401 || trashRes.status === 401) {
+        const errData = await activeRes.json().catch(() => ({}));
         const msg =
           errData?.message ||
           'No se pudo validar tu sesión administrativa (HTTP 401). Verifica que las cookies estén habilitadas e inicia sesión nuevamente.';
@@ -217,20 +433,27 @@ class AdminPortalController {
         return false;
       }
 
-      const payload = (await res.json()) as ListParticipantesResponse;
-      if (!payload.ok) {
-        this.notify('Error', payload.message || 'No se pudieron cargar los registros.', true);
+      const activePayload = (await activeRes.json()) as ListParticipantesResponse;
+      const trashPayload = (await trashRes.json()) as ListParticipantesResponse;
+
+      if (!activePayload.ok) {
+        this.notify('Error', activePayload.message || 'No se pudieron cargar los registros.', true);
         return false;
       }
 
-      this.allRecords = payload.data || [];
+      this.activeRecords = activePayload.data || [];
+      this.deletedRecords = trashPayload.ok ? trashPayload.data || [] : [];
+
+      this.activeCountBadge.textContent = String(this.activeRecords.length);
+      this.trashCountBadge.textContent = String(this.deletedRecords.length);
+
       this.updateStats();
       this.applyClientFilters();
 
       if (announceRefresh) {
         this.notify(
           'Padrón actualizado',
-          `Se cargaron ${this.allRecords.length} participantes registrados.`
+          `Activos: ${this.activeRecords.length} · En papelera: ${this.deletedRecords.length}`
         );
       }
       return true;
@@ -241,13 +464,14 @@ class AdminPortalController {
   }
 
   private updateStats(): void {
-    const total = this.allRecords.length;
-    const sorteoCount = this.allRecords.filter(
+    // Las tarjetas de métricas reflejan exclusivamente el padrón activo (WHERE activo = 1)
+    const total = this.activeRecords.length;
+    const sorteoCount = this.activeRecords.filter(
       (r) => r.estado_sorteo === 'Participando' && r.consentimiento_datos_personales
     ).length;
-    const conHijosCount = this.allRecords.filter((r) => (r.hijos_menores || 0) > 0).length;
+    const conHijosCount = this.activeRecords.filter((r) => (r.hijos_menores || 0) > 0).length;
     const todayIso = new Date().toISOString().slice(0, 10);
-    const hoyCount = this.allRecords.filter(
+    const hoyCount = this.activeRecords.filter(
       (r) => (r.fecha_registro || '').slice(0, 10) === todayIso
     ).length;
 
@@ -262,7 +486,10 @@ class AdminPortalController {
     const desde = this.fechaDesdeInput.value.trim();
     const hasta = this.fechaHastaInput.value.trim();
 
-    const filtered = this.allRecords.filter((item) => {
+    const sourceList =
+      this.currentTab === 'activos' ? this.activeRecords : this.deletedRecords;
+
+    const filtered = sourceList.filter((item) => {
       if (query) {
         const haystack = [
           item.numero_documento || item.dni || '',
@@ -296,13 +523,17 @@ class AdminPortalController {
       return true;
     });
 
-    this.resultsCounter.textContent = `Mostrando ${filtered.length} de ${this.allRecords.length} participantes registrados`;
+    const labelTipo =
+      this.currentTab === 'activos' ? 'participantes activos' : 'registros en papelera';
+    this.resultsCounter.textContent = `Mostrando ${filtered.length} de ${sourceList.length} ${labelTipo}`;
     this.renderTable(filtered);
   }
 
-  private formatDateTime(iso: string): string {
+  private formatDateTime(iso: string | null | undefined): string {
+    if (!iso) return '-';
     try {
-      const d = new Date(iso);
+      const normalized = iso.includes('T') ? iso : `${iso.replace(' ', 'T')}Z`;
+      const d = new Date(normalized);
       if (Number.isNaN(d.getTime())) return iso;
       return new Intl.DateTimeFormat('es-PE', {
         year: 'numeric',
@@ -323,9 +554,13 @@ class AdminPortalController {
 
     if (records.length === 0) {
       const tr = document.createElement('tr');
+      const emptyMsg =
+        this.currentTab === 'activos'
+          ? 'No se encontraron participantes activos con los criterios seleccionados.'
+          : 'La papelera de eliminados está vacía.';
       tr.innerHTML = `
-        <td colspan="9" class="empty-cell">
-          No se encontraron participantes con los criterios seleccionados.
+        <td colspan="10" class="empty-cell">
+          ${emptyMsg}
         </td>
       `;
       this.tableBody.appendChild(tr);
@@ -340,6 +575,20 @@ class AdminPortalController {
         r.apellidos && r.nombres
           ? `${r.apellidos}, ${r.nombres}`
           : r.nombres_apellidos || `${r.nombres || ''} ${r.apellidos || ''}`.trim();
+
+      const isTrashView = this.currentTab === 'eliminados';
+      const statusHtml = isTrashView
+        ? `<span class="status-pill status-deleted">🗑 Eliminado</span>
+           ${r.fecha_eliminacion ? `<small class="participant-meta">Baja: ${this.formatDateTime(r.fecha_eliminacion)}</small>` : ''}`
+        : `<span class="status-pill status-active">✓ ${r.estado_sorteo}</span>`;
+
+      const actionHtml = isTrashView
+        ? `<button type="button" class="btn-restore-row" data-restore-id="${r.id}" data-participant-name="${nombreCompleto}">
+             ↺ Restaurar
+           </button>`
+        : `<button type="button" class="btn-delete-row" data-delete-id="${r.id}" data-participant-name="${nombreCompleto}">
+             🗑 Eliminar
+           </button>`;
 
       tr.innerHTML = `
         <td class="col-id">#${r.id}</td>
@@ -364,9 +613,8 @@ class AdminPortalController {
         <td><a class="table-link" href="tel:${r.celular}">${r.celular}</a></td>
         <td>${r.correo ? `<a class="table-link" href="mailto:${r.correo}">${r.correo}</a>` : '<span class="participant-meta">(No indicado)</span>'}</td>
         <td class="col-date">${this.formatDateTime(r.fecha_registro)}</td>
-        <td>
-          <span class="status-pill status-active">✓ ${r.estado_sorteo}</span>
-        </td>
+        <td>${statusHtml}</td>
+        <td>${actionHtml}</td>
       `;
       this.tableBody.appendChild(tr);
     });
@@ -411,7 +659,7 @@ class AdminPortalController {
 
       this.notify(
         'Exportación exitosa',
-        'El archivo Excel (.xlsx) se ha descargado correctamente.'
+        'El archivo Excel (.xlsx) con el padrón activo se ha descargado correctamente.'
       );
     } catch {
       this.notify(

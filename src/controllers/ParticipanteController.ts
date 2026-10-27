@@ -13,7 +13,8 @@ export class ParticipanteController {
   /**
    * POST /api/participantes
    * Registra un nuevo participante validando formato, sanitizando contra XSS
-   * y verificando unicidad de documento en `cona_campana.db` (HTTP 409 en caso de duplicado).
+   * y verificando unicidad de documento en `cona_campana.db` (HTTP 409 si ya está activo,
+   * o reactivación automática si se encontraba eliminado en papelera).
    */
   public registrar = async (req: Request, res: Response): Promise<void> => {
     try {
@@ -25,7 +26,7 @@ export class ParticipanteController {
         dto.numero_documento
       );
 
-      if (existente) {
+      if (existente && existente.activo) {
         throw new DuplicateDocumentError(dto.numero_documento, dto.tipo_documento);
       }
 
@@ -81,11 +82,17 @@ export class ParticipanteController {
         tipoDocumento,
         numeroDocumento
       );
+      const isActivo = Boolean(participante && participante.activo);
+      const isEliminado = Boolean(participante && !participante.activo);
+
       res.status(200).json({
         ok: true,
-        registrado: Boolean(participante),
-        message: participante
+        registrado: isActivo,
+        eliminado: isEliminado,
+        message: isActivo
           ? `El documento N.° ${numeroDocumento} ya se encuentra registrado y participando en el sorteo.`
+          : isEliminado
+          ? `El documento N.° ${numeroDocumento} se encontraba dado de baja y puede reactivarse completando el formulario.`
           : 'Documento disponible para actualizar datos.'
       });
     } catch (error) {

@@ -29,6 +29,8 @@ export interface Participante {
   consentimiento_datos_personales: boolean;
   estado_sorteo: 'Participando' | 'Excluido';
   fecha_registro: string;
+  activo: boolean;
+  fecha_eliminacion: string | null;
   // Propiedades de compatibilidad
   dni?: string;
   nombres_apellidos?: string;

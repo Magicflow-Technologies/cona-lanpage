@@ -11,4 +11,7 @@ export interface IParticipanteRepository {
   buscarPorDni(dni: string): Promise<Participante | null>;
   buscarPorDocumento(tipoDoc: string, numDoc: string): Promise<Participante | null>;
   obtenerTodos(): Promise<Participante[]>;
+  obtenerEliminados(): Promise<Participante[]>;
+  eliminar(id: number): Promise<boolean>;
+  restaurar(id: number): Promise<boolean>;
 }
