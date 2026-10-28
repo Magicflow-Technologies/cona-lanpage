@@ -4,11 +4,14 @@ exports.SqliteParticipanteRepository = void 0;
 const AppError_1 = require("../../core/errors/AppError");
 const sqlite_1 = require("../database/sqlite");
 const SELECT_COLUMNS = `
-  id, tipo_documento, numero_documento, apellidos, nombres,
-  celular, correo, direccion, departamento, provincia, distrito, ubigeo,
-  ruc_empresa, nombre_proyecto, categoria, especialidad,
-  hijos_menores, hijos_json, consentimiento_datos_personales,
-  estado_sorteo, fecha_registro, activo, fecha_eliminacion
+  id, tipo_documento, numero_documento, nombres, apellidos,
+  fecha_nacimiento, celular, correo, direccion_domiciliaria, direccion,
+  departamento, provincia, distrito, ubigeo,
+  categoria_laboral, categoria, especialidad_laboral, especialidad,
+  trabaja_en_obra, ruc_empleador, ruc_empresa, no_conoce_ruc,
+  nombre_proyecto, hijos_menores, hijos_json,
+  consentimiento_datos_personales, estado_sorteo, fecha_registro,
+  activo, fecha_eliminacion
 `;
 /**
  * Adaptador de Persistencia SQLite implementando IParticipanteRepository sobre `cona_campana.db`.
@@ -28,30 +31,59 @@ class SqliteParticipanteRepository {
         catch {
             parsedHijos = [];
         }
-        const tipoDoc = row.tipo_documento === 'Carnet de Extranjería' ||
-            row.tipo_documento === 'Carnet de Extranjeria'
-            ? 'Carnet de Extranjería'
-            : 'DNI';
+        const rawTipo = row.tipo_documento || 'DNI';
+        let tipoDoc = 'DNI';
+        if (rawTipo === 'Carné de extranjería' ||
+            rawTipo === 'Carnet de Extranjería' ||
+            rawTipo === 'Carnet de Extranjeria') {
+            tipoDoc = 'Carné de extranjería';
+        }
+        else if (rawTipo === 'Pasaporte') {
+            tipoDoc = 'Pasaporte';
+        }
+        else if (rawTipo === 'Permiso temporal de permanencia' ||
+            rawTipo === 'PTP') {
+            tipoDoc = 'Permiso temporal de permanencia';
+        }
+        else if (rawTipo === 'Otro documento') {
+            tipoDoc = 'Otro documento';
+        }
+        else {
+            tipoDoc = 'DNI';
+        }
         const apellidos = row.apellidos || '';
         const nombres = row.nombres || '';
         const nombresApellidos = `${nombres} ${apellidos}`.trim();
+        const direccionDom = row.direccion_domiciliaria || row.direccion || '';
+        const catLaboral = row.categoria_laboral || row.categoria || 'Operario';
+        const espLaboral = row.especialidad_laboral || row.especialidad || '';
+        const rucEmp = row.ruc_empleador || row.ruc_empresa || '';
+        const trabajaEnObra = row.trabaja_en_obra === undefined ? true : Number(row.trabaja_en_obra) === 1;
+        const noConoceRuc = row.no_conoce_ruc === undefined ? false : Number(row.no_conoce_ruc) === 1;
         return {
             id: Number(row.id),
             tipo_documento: tipoDoc,
             numero_documento: row.numero_documento,
-            apellidos,
             nombres,
+            apellidos,
+            fecha_nacimiento: row.fecha_nacimiento || '',
             celular: row.celular,
             correo: row.correo || '',
-            direccion: row.direccion || '',
+            direccion_domiciliaria: direccionDom,
+            direccion: direccionDom,
             departamento: row.departamento,
             provincia: row.provincia,
             distrito: row.distrito,
             ubigeo: row.ubigeo || '',
-            ruc_empresa: row.ruc_empresa || '',
+            categoria_laboral: catLaboral,
+            categoria: catLaboral,
+            especialidad_laboral: espLaboral,
+            especialidad: espLaboral,
+            trabaja_en_obra: trabajaEnObra,
+            ruc_empleador: rucEmp,
+            ruc_empresa: rucEmp,
+            no_conoce_ruc: noConoceRuc,
             nombre_proyecto: row.nombre_proyecto || '',
-            categoria: row.categoria,
-            especialidad: row.especialidad || '',
             hijos_menores: Number(row.hijos_menores ?? parsedHijos.length),
             hijos_json: row.hijos_json || '[]',
             hijos_detalle: parsedHijos,
@@ -102,24 +134,35 @@ class SqliteParticipanteRepository {
                 throw new AppError_1.DuplicateDocumentError(data.numero_documento, data.tipo_documento);
             }
             // Si el registro estaba en la papelera (activo = 0), permitir reactivación actualizando sus datos
+            const direccionFinal = data.direccion_domiciliaria || data.direccion;
+            const catFinal = data.categoria_laboral || data.categoria;
+            const espFinal = data.especialidad_laboral || data.especialidad || '';
+            const rucFinal = data.ruc_empleador || data.ruc_empresa || '';
             const reactivateStmt = this.db.prepare(`
         UPDATE participantes
         SET
           tipo_documento = ?,
           numero_documento = ?,
-          apellidos = ?,
           nombres = ?,
+          apellidos = ?,
+          fecha_nacimiento = ?,
           celular = ?,
           correo = ?,
+          direccion_domiciliaria = ?,
           direccion = ?,
           departamento = ?,
           provincia = ?,
           distrito = ?,
           ubigeo = ?,
-          ruc_empresa = ?,
-          nombre_proyecto = ?,
+          categoria_laboral = ?,
           categoria = ?,
+          especialidad_laboral = ?,
           especialidad = ?,
+          trabaja_en_obra = ?,
+          ruc_empleador = ?,
+          ruc_empresa = ?,
+          no_conoce_ruc = ?,
+          nombre_proyecto = ?,
           hijos_menores = ?,
           hijos_json = ?,
           consentimiento_datos_personales = ?,
@@ -129,7 +172,7 @@ class SqliteParticipanteRepository {
           fecha_eliminacion = NULL
         WHERE id = ?
       `);
-            reactivateStmt.run(data.tipo_documento || 'DNI', data.numero_documento, data.apellidos, data.nombres, data.celular, data.correo || '', data.direccion, data.departamento, data.provincia, data.distrito, data.ubigeo || '', data.ruc_empresa || '', data.nombre_proyecto || '', data.categoria, data.especialidad || '', data.hijos_menores ?? 0, hijosJson, data.consentimiento_datos_personales ? 1 : 0, fechaRegistroIso, existente.id);
+            reactivateStmt.run(data.tipo_documento || 'DNI', data.numero_documento, data.nombres, data.apellidos, data.fecha_nacimiento || '', data.celular, data.correo || '', direccionFinal, direccionFinal, data.departamento, data.provincia, data.distrito, data.ubigeo || '', catFinal, catFinal, espFinal, espFinal, data.trabaja_en_obra ? 1 : 0, rucFinal, rucFinal, data.no_conoce_ruc ? 1 : 0, data.nombre_proyecto || '', data.hijos_menores ?? 0, hijosJson, data.consentimiento_datos_personales ? 1 : 0, fechaRegistroIso, existente.id);
             const selectReactivatedStmt = this.db.prepare(`
         SELECT ${SELECT_COLUMNS}
         FROM participantes
@@ -138,23 +181,34 @@ class SqliteParticipanteRepository {
             const reactivatedRow = selectReactivatedStmt.get(existente.id);
             return this.mapRowToEntity(reactivatedRow);
         }
+        const direccionFinal = data.direccion_domiciliaria || data.direccion;
+        const catFinal = data.categoria_laboral || data.categoria;
+        const espFinal = data.especialidad_laboral || data.especialidad || '';
+        const rucFinal = data.ruc_empleador || data.ruc_empresa || '';
         const insertStmt = this.db.prepare(`
       INSERT INTO participantes (
         tipo_documento,
         numero_documento,
-        apellidos,
         nombres,
+        apellidos,
+        fecha_nacimiento,
         celular,
         correo,
+        direccion_domiciliaria,
         direccion,
         departamento,
         provincia,
         distrito,
         ubigeo,
-        ruc_empresa,
-        nombre_proyecto,
+        categoria_laboral,
         categoria,
+        especialidad_laboral,
         especialidad,
+        trabaja_en_obra,
+        ruc_empleador,
+        ruc_empresa,
+        no_conoce_ruc,
+        nombre_proyecto,
         hijos_menores,
         hijos_json,
         consentimiento_datos_personales,
@@ -162,10 +216,10 @@ class SqliteParticipanteRepository {
         fecha_registro,
         activo,
         fecha_eliminacion
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NULL)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Participando', ?, 1, NULL)
     `);
         try {
-            const result = insertStmt.run(data.tipo_documento || 'DNI', data.numero_documento, data.apellidos, data.nombres, data.celular, data.correo || '', data.direccion, data.departamento, data.provincia, data.distrito, data.ubigeo || '', data.ruc_empresa || '', data.nombre_proyecto || '', data.categoria, data.especialidad || '', data.hijos_menores ?? 0, hijosJson, data.consentimiento_datos_personales ? 1 : 0, 'Participando', fechaRegistroIso);
+            const result = insertStmt.run(data.tipo_documento || 'DNI', data.numero_documento, data.nombres, data.apellidos, data.fecha_nacimiento || '', data.celular, data.correo || '', direccionFinal, direccionFinal, data.departamento, data.provincia, data.distrito, data.ubigeo || '', catFinal, catFinal, espFinal, espFinal, data.trabaja_en_obra ? 1 : 0, rucFinal, rucFinal, data.no_conoce_ruc ? 1 : 0, data.nombre_proyecto || '', data.hijos_menores ?? 0, hijosJson, data.consentimiento_datos_personales ? 1 : 0, fechaRegistroIso);
             const newId = Number(result.lastInsertRowid);
             const selectByIdStmt = this.db.prepare(`
         SELECT ${SELECT_COLUMNS}

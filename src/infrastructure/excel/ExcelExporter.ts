@@ -17,31 +17,34 @@ export class ExcelExporter {
       views: [{ state: 'frozen', ySplit: 3 }]
     });
 
-    // Definición de columnas (Fila 3 como cabecera de datos - 19 columnas: A..S)
+    // Definición de columnas (Fila 3 como cabecera de datos - 22 columnas: A..V)
     const headers = [
       'ID',
-      'Tipo Doc',
-      'DNI / CE',
-      'Apellidos',
+      'Tipo de Documento',
+      'N.º de Documento',
       'Nombres',
+      'Apellidos',
+      'Fecha de Nacimiento',
       'N.º de Celular',
       'Correo Electrónico',
-      'Dirección',
+      'Dirección Domiciliaria',
       'Departamento',
       'Provincia',
       'Distrito',
-      'RUC Empresa',
-      'Nombre de Proyecto',
-      'Categoría',
-      'Especialidad',
+      'Categoría Laboral',
+      'Especialidad Laboral',
+      '¿Trabaja en Obra?',
+      'RUC del Empleador',
+      'No Conoce RUC',
+      'Nombre de Proyecto u Obra',
       'N.º Hijos Menores',
       'Detalle Hijos (Edad / Sexo)',
       'Estado en el Sorteo',
       'Fecha y Hora de Registro'
     ];
 
-    // Fila 1: Título Institucional (19 columnas: A..S)
-    sheet.mergeCells('A1:S1');
+    // Fila 1: Título Institucional (22 columnas: A..V)
+    sheet.mergeCells('A1:V1');
     const titleCell = sheet.getCell('A1');
     titleCell.value =
       'CONA · CAMPAÑA DE ACTUALIZACIÓN DE DATOS — PADRÓN OFICIAL DE PARTICIPANTES DEL SORTEO';
@@ -60,7 +63,7 @@ export class ExcelExporter {
     sheet.getRow(1).height = 30;
 
     // Fila 2: Subtítulo con fecha de exportación y conteo
-    sheet.mergeCells('A2:S2');
+    sheet.mergeCells('A2:V2');
     const subtitleCell = sheet.getCell('A2');
     const nowFormatted = new Intl.DateTimeFormat('es-PE', {
       dateStyle: 'full',
@@ -123,23 +126,28 @@ export class ExcelExporter {
           : 'Sin hijos menores';
 
       const fechaFormateada = ExcelExporter.formatIsoDate(p.fecha_registro);
+      const trabajaObraStr = p.trabaja_en_obra ? 'Sí' : 'No';
+      const noConoceRucStr = p.no_conoce_ruc ? 'Sí' : 'No';
 
       const rowValues = [
         p.id,
         p.tipo_documento || 'DNI',
         unescapeForExcel(p.numero_documento || p.dni),
-        unescapeForExcel(p.apellidos),
         unescapeForExcel(p.nombres),
+        unescapeForExcel(p.apellidos),
+        p.fecha_nacimiento || '(No indicada)',
         p.celular,
         unescapeForExcel(p.correo) || '(No indicado)',
-        unescapeForExcel(p.direccion),
+        unescapeForExcel(p.direccion_domiciliaria || p.direccion),
         unescapeForExcel(p.departamento),
         unescapeForExcel(p.provincia),
         unescapeForExcel(p.distrito),
-        unescapeForExcel(p.ruc_empresa) || '(No indicado)',
+        unescapeForExcel(p.categoria_laboral || p.categoria),
+        unescapeForExcel(p.especialidad_laboral || p.especialidad) || '(No indicada)',
+        trabajaObraStr,
+        unescapeForExcel(p.ruc_empleador || p.ruc_empresa) || '(No indicado)',
+        noConoceRucStr,
         unescapeForExcel(p.nombre_proyecto) || '(No indicado)',
-        unescapeForExcel(p.categoria),
-        unescapeForExcel(p.especialidad) || '(No indicado)',
         p.hijos_menores ?? 0,
         detalleHijos,
         p.estado_sorteo,
@@ -166,13 +174,13 @@ export class ExcelExporter {
           right: { style: 'thin', color: { argb: 'FFD8E2EE' } }
         };
 
-        if ([1, 2, 3, 6, 12, 14, 16, 18, 19].includes(colNumber)) {
+        if ([1, 2, 3, 6, 7, 13, 15, 17, 19, 21, 22].includes(colNumber)) {
           cell.alignment = { vertical: 'middle', horizontal: 'center' };
         } else {
           cell.alignment = { vertical: 'middle', horizontal: 'left' };
         }
 
-        if (colNumber === 18) {
+        if (colNumber === 21) {
           cell.font = {
             name: 'Segoe UI',
             size: 10,
@@ -182,6 +190,7 @@ export class ExcelExporter {
         }
       });
     });
+
 
     sheet.autoFilter = {
       from: { row: 3, column: 1 },

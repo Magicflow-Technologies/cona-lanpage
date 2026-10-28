@@ -22,34 +22,45 @@ async function runVerification(): Promise<void> {
   const baseUrl = `http://127.0.0.1:${port}`;
 
   try {
-    // 1. Verificar estructura oficial de campos del formulario en Landing Page
+    // 1. Verificar estructura oficial de campos del formulario en Landing Page (Opción 4)
     const homeRes = await fetch(`${baseUrl}/`);
     const homeHtml = await homeRes.text();
     if (
       homeRes.status !== 200 ||
+      !homeHtml.includes('Formulario de página única') ||
+      !homeHtml.includes('REGÍSTRATE Y PARTICIPA') ||
       !homeHtml.includes('id="tipo_documento"') ||
-      !homeHtml.includes('value="Carnet de Extranjería"') ||
+      !homeHtml.includes('value="Carné de extranjería"') ||
       !homeHtml.includes('id="numero_documento"') ||
-      !homeHtml.includes('id="apellidos"') ||
       !homeHtml.includes('id="nombres"') ||
+      !homeHtml.includes('id="apellidos"') ||
+      !homeHtml.includes('id="fecha_nacimiento"') ||
       !homeHtml.includes('id="celular"') ||
       !homeHtml.includes('id="correo"') ||
-      !homeHtml.includes('id="direccion"') ||
+      !homeHtml.includes('id="direccion_domiciliaria"') ||
       !homeHtml.includes('id="departamento"') ||
       !homeHtml.includes('id="provincia"') ||
       !homeHtml.includes('id="distrito"') ||
-      !homeHtml.includes('id="ruc_empresa"') ||
+      !homeHtml.includes('id="categoria_laboral"') ||
+      !homeHtml.includes('id="especialidad_laboral"') ||
+      !homeHtml.includes('id="trabajaObraSi"') ||
+      !homeHtml.includes('id="trabajaObraNo"') ||
+      !homeHtml.includes('id="bloqueCondicionalObra"') ||
+      !homeHtml.includes('id="ruc_empleador"') ||
+      !homeHtml.includes('id="no_conoce_ruc"') ||
       !homeHtml.includes('id="nombre_proyecto"') ||
-      !homeHtml.includes('id="categoria"') ||
-      !homeHtml.includes('id="especialidad"') ||
+      !homeHtml.includes('id="hijos"') ||
       !homeHtml.includes('id="agregarHijo"') ||
       !homeHtml.includes('id="quitarHijo"') ||
-      !homeHtml.includes('id="sinHijos"')
+      !homeHtml.includes('id="sinHijos"') ||
+      !homeHtml.includes('id="consentimientoDatos"') ||
+      !homeHtml.includes('id="consentToggle"') ||
+      !homeHtml.includes('Actualizar datos y participar')
     ) {
-      throw new Error('La estructura del formulario no contiene todos los campos oficiales requeridos.');
+      throw new Error('La estructura del formulario no contiene todos los campos oficiales requeridos de Opción 4.');
     }
     console.log(
-      '✔ [1/7] Estructura del formulario verificada: matriz oficial de campos CONA completa.'
+      '✔ [1/7] Estructura del formulario verificada: Opción 4 (Formulario de página única) completa.'
     );
 
     // 2. Probar Registro de Participante con DNI (HTTP 201) + Sanitización XSS
@@ -61,17 +72,24 @@ async function runVerification(): Promise<void> {
         numero_documento: '45892310',
         apellidos: 'Pérez López <script>',
         nombres: 'Juan Carlos',
+        fecha_nacimiento: '1985-05-15',
         celular: '987654321',
         correo: 'juan.perez@correo.com',
+        direccion_domiciliaria: 'Av. Prolongación Cangallo N.° 670, La Victoria',
         direccion: 'Av. Prolongación Cangallo N.° 670, La Victoria',
         departamento: 'Lima',
         provincia: 'Lima',
         distrito: 'La Victoria',
         ubigeo: '150115',
-        ruc_empresa: '20131312955',
-        nombre_proyecto: 'Residencial Las Torres',
+        categoria_laboral: 'Operario',
         categoria: 'Operario',
+        especialidad_laboral: 'Fierrero',
         especialidad: 'Fierrero',
+        trabaja_en_obra: true,
+        ruc_empleador: '20131312955',
+        ruc_empresa: '20131312955',
+        no_conoce_ruc: false,
+        nombre_proyecto: 'Residencial Las Torres',
         hijos_menores: 1,
         hijos: [{ orden: 1, edad: 7, sexo: 'Femenino' }],
         consentimiento_datos_personales: true
@@ -109,17 +127,24 @@ async function runVerification(): Promise<void> {
         numero_documento: '45892310',
         apellidos: 'Pérez López',
         nombres: 'Juan Carlos',
+        fecha_nacimiento: '1985-05-15',
         celular: '987654321',
         correo: '',
+        direccion_domiciliaria: 'Av. Prolongación Cangallo N.° 670',
         direccion: 'Av. Prolongación Cangallo N.° 670',
         departamento: 'Lima',
         provincia: 'Lima',
         distrito: 'La Victoria',
         ubigeo: '150115',
-        ruc_empresa: '',
-        nombre_proyecto: '',
+        categoria_laboral: 'Operario',
         categoria: 'Operario',
+        especialidad_laboral: '',
         especialidad: '',
+        trabaja_en_obra: false,
+        ruc_empleador: '',
+        ruc_empresa: '',
+        no_conoce_ruc: false,
+        nombre_proyecto: '',
         hijos_menores: 0,
         hijos: [],
         consentimiento_datos_personales: true
@@ -137,21 +162,28 @@ async function runVerification(): Promise<void> {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        tipo_documento: 'Carnet de Extranjería',
+        tipo_documento: 'Carné de extranjería',
         numero_documento: '123456789',
         apellidos: 'Huamán Rojas',
         nombres: 'María Elena',
+        fecha_nacimiento: '1990-11-20',
         celular: '991234567',
         correo: 'mhuaman@cona-aportantes.pe',
+        direccion_domiciliaria: 'Jr. Los Constructores 450, Urb. Zárate',
         direccion: 'Jr. Los Constructores 450, Urb. Zárate',
         departamento: 'Lima',
         provincia: 'Lima',
         distrito: 'San Juan de Lurigancho',
         ubigeo: '150132',
-        ruc_empresa: '20506070809',
-        nombre_proyecto: 'Obra Vial Este',
+        categoria_laboral: 'Oficial',
         categoria: 'Oficial',
+        especialidad_laboral: 'Encofrador',
         especialidad: 'Encofrador',
+        trabaja_en_obra: true,
+        ruc_empleador: '20506070809',
+        ruc_empresa: '20506070809',
+        no_conoce_ruc: false,
+        nombre_proyecto: 'Obra Vial Este',
         hijos_menores: 2,
         hijos: [
           { orden: 1, edad: 10, sexo: 'Masculino' },

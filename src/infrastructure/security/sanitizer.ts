@@ -86,35 +86,37 @@ export function validateAndSanitizeParticipanteDTO(raw: Record<string, unknown>)
   // 1. Documento de Identidad
   const rawTipoDoc = String(raw.tipo_documento ?? 'DNI').trim();
   let tipo_documento: TipoDocumento;
+
   if (
+    rawTipoDoc === 'Carné de extranjería' ||
     rawTipoDoc === 'Carnet de Extranjería' ||
     rawTipoDoc === 'Carnet de Extranjeria' ||
     rawTipoDoc === 'CE'
   ) {
-    tipo_documento = 'Carnet de Extranjería';
+    tipo_documento = 'Carné de extranjería';
+  } else if (rawTipoDoc === 'Pasaporte') {
+    tipo_documento = 'Pasaporte';
+  } else if (
+    rawTipoDoc === 'Permiso temporal de permanencia' ||
+    rawTipoDoc === 'PTP'
+  ) {
+    tipo_documento = 'Permiso temporal de permanencia';
+  } else if (rawTipoDoc === 'Otro documento') {
+    tipo_documento = 'Otro documento';
   } else if (rawTipoDoc === 'DNI') {
     tipo_documento = 'DNI';
   } else {
     throw new AppError(
-      'Selecciona un tipo de documento válido (DNI o Carnet de Extranjería).',
+      'Selecciona un tipo de documento válido (DNI, Carné de extranjería, Pasaporte, Permiso temporal de permanencia u Otro documento).',
       400,
       'INVALID_DOCUMENT_TYPE'
     );
   }
 
-  const numero_documento = String(raw.numero_documento ?? raw.dni ?? '')
-    .replace(/\D/g, '')
-    .trim();
+  let numero_documento = String(raw.numero_documento ?? raw.dni ?? '').trim();
 
-  if (tipo_documento === 'Carnet de Extranjería') {
-    if (!/^[0-9]{9}$/.test(numero_documento)) {
-      throw new AppError(
-        'Ingresa exactamente 9 dígitos numéricos para el Carnet de Extranjería.',
-        400,
-        'INVALID_CE_FORMAT'
-      );
-    }
-  } else {
+  if (tipo_documento === 'DNI') {
+    numero_documento = numero_documento.replace(/\D/g, '');
     if (!/^[0-9]{8}$/.test(numero_documento)) {
       throw new AppError(
         'Ingresa exactamente 8 dígitos numéricos para el DNI.',
@@ -122,17 +124,49 @@ export function validateAndSanitizeParticipanteDTO(raw: Record<string, unknown>)
         'INVALID_DNI_FORMAT'
       );
     }
+  } else if (tipo_documento === 'Carné de extranjería' || (tipo_documento as string) === 'Carnet de Extranjería') {
+    numero_documento = numero_documento.replace(/\D/g, '');
+    if (!/^[0-9]{9}$/.test(numero_documento)) {
+      throw new AppError(
+        'Ingresa exactamente 9 dígitos numéricos para el Carné de extranjería.',
+        400,
+        'INVALID_CE_FORMAT'
+      );
+    }
+  } else {
+    numero_documento = sanitizeString(numero_documento, 30);
+    if (numero_documento.length < 4 || numero_documento.length > 25) {
+      throw new AppError(
+        'Ingresa un número de documento válido para el tipo seleccionado (entre 4 y 25 caracteres).',
+        400,
+        'INVALID_DOCUMENT_NUMBER'
+      );
+    }
   }
 
   // 2. Identificación Personal (Apellidos y Nombres independientes)
+  const nombres = sanitizeString(raw.nombres ?? raw.nombre, 100);
+  if (nombres.length < 2) {
+    throw new AppError('Ingresa tus nombres (mínimo 2 caracteres).', 400, 'INVALID_FIRSTNAME');
+  }
+
   const apellidos = sanitizeString(raw.apellidos, 100);
   if (apellidos.length < 2) {
     throw new AppError('Ingresa tus apellidos (mínimo 2 caracteres).', 400, 'INVALID_LASTNAME');
   }
 
-  const nombres = sanitizeString(raw.nombres ?? raw.nombre, 100);
-  if (nombres.length < 2) {
-    throw new AppError('Ingresa tus nombres (mínimo 2 caracteres).', 400, 'INVALID_FIRSTNAME');
+  // Fecha de nacimiento (AAAA-MM-DD)
+  let fecha_nacimiento = String(raw.fecha_nacimiento ?? '').trim();
+  if (!fecha_nacimiento) {
+    fecha_nacimiento = '1990-01-01'; // Fallback prudente para retrocompatibilidad
+  } else {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha_nacimiento)) {
+      throw new AppError(
+        'Ingresa una fecha de nacimiento válida (AAAA-MM-DD).',
+        400,
+        'INVALID_BIRTHDATE'
+      );
+    }
   }
 
   // 3. Contacto y Residencia
@@ -156,10 +190,10 @@ export function validateAndSanitizeParticipanteDTO(raw: Record<string, unknown>)
     );
   }
 
-  const direccion = sanitizeString(raw.direccion, 200);
+  const direccion = sanitizeString(raw.direccion_domiciliaria ?? raw.direccion, 200);
   if (direccion.length < 3) {
     throw new AppError(
-      'Ingresa tu dirección de residencia completa.',
+      'Ingresa tu dirección domiciliaria completa.',
       400,
       'REQUIRED_ADDRESS'
     );
@@ -180,31 +214,56 @@ export function validateAndSanitizeParticipanteDTO(raw: Record<string, unknown>)
     .replace(/\D/g, '')
     .slice(0, 6);
 
-  // 4. Datos Laborales
-  const rawRuc = String(raw.ruc_empresa ?? '')
-    .replace(/\D/g, '')
-    .trim();
-  if (rawRuc.length > 0 && !/^[0-9]{11}$/.test(rawRuc)) {
-    throw new AppError(
-      'Si ingresas el RUC de la empresa, debe tener exactamente 11 dígitos numéricos.',
-      400,
-      'INVALID_RUC'
-    );
-  }
-
-  const nombre_proyecto = sanitizeString(raw.nombre_proyecto, 150);
-
-  const rawCategoria = String(raw.categoria ?? '').trim();
+  // 4. Información Laboral
+  const rawCategoria = String(raw.categoria_laboral ?? raw.categoria ?? '').trim();
   if (!rawCategoria || !VALID_CATEGORIES.has(rawCategoria)) {
     throw new AppError(
-      'Selecciona una categoría válida (Peón, Oficial u Operario).',
+      'Selecciona una categoría laboral válida (Peón, Oficial u Operario).',
       400,
       'REQUIRED_CATEGORY'
     );
   }
   const categoria = rawCategoria === 'Peon' ? 'Peón' : sanitizeString(rawCategoria, 40);
+  const categoria_laboral = categoria;
 
-  const especialidad = sanitizeString(raw.especialidad, 120);
+  const especialidad = sanitizeString(raw.especialidad_laboral ?? raw.especialidad, 120);
+  const especialidad_laboral = especialidad;
+
+  // Pregunta: ¿Actualmente trabajas en una obra de construcción civil?
+  const trabaja_en_obra = raw.trabaja_en_obra !== undefined
+    ? parseBooleanField(raw.trabaja_en_obra)
+    : true;
+
+  let ruc_empleador = '';
+  let no_conoce_ruc = false;
+  let nombre_proyecto = '';
+
+  if (trabaja_en_obra) {
+    no_conoce_ruc = parseBooleanField(raw.no_conoce_ruc ?? false);
+    const rawRuc = String(raw.ruc_empleador ?? raw.ruc_empresa ?? '')
+      .replace(/\D/g, '')
+      .trim();
+
+    if (!no_conoce_ruc && rawRuc.length > 0) {
+      if (!/^[0-9]{11}$/.test(rawRuc)) {
+        throw new AppError(
+          'Si ingresas el RUC del empleador, debe tener exactamente 11 dígitos numéricos.',
+          400,
+          'INVALID_RUC'
+        );
+      }
+      ruc_empleador = rawRuc;
+    } else if (!no_conoce_ruc && raw.ruc_empleador !== undefined && String(raw.ruc_empleador).trim() === '') {
+      // Opcional o justificado si no conoce RUC
+      ruc_empleador = '';
+    } else {
+      ruc_empleador = rawRuc;
+    }
+
+    nombre_proyecto = sanitizeString(raw.nombre_proyecto, 150);
+  }
+
+  const ruc_empresa = ruc_empleador;
 
   // 5. Hijos menores de edad
   let rawHijosArray: unknown[] = [];
@@ -267,22 +326,30 @@ export function validateAndSanitizeParticipanteDTO(raw: Record<string, unknown>)
   return {
     tipo_documento,
     numero_documento,
-    apellidos,
     nombres,
+    apellidos,
+    fecha_nacimiento,
     celular,
     correo: correo ? escapeHtml(correo) : '',
+    direccion_domiciliaria: direccion,
     direccion,
     departamento,
     provincia,
     distrito,
     ubigeo,
-    ruc_empresa: rawRuc,
-    nombre_proyecto,
+    categoria_laboral,
     categoria,
+    especialidad_laboral: especialidad,
     especialidad,
+    trabaja_en_obra,
+    ruc_empleador,
+    ruc_empresa,
+    no_conoce_ruc,
+    nombre_proyecto,
     hijos_menores,
     hijos_json: JSON.stringify(hijos_detalle),
     hijos_detalle,
     consentimiento_datos_personales
   };
 }
+

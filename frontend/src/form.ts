@@ -64,18 +64,27 @@ export class FormController {
   private readonly numDocInput: HTMLInputElement;
   private readonly apellidosInput: HTMLInputElement;
   private readonly nombresInput: HTMLInputElement;
+  private readonly fechaNacimientoInput: HTMLInputElement | null;
   private readonly celularInput: HTMLInputElement;
   private readonly correoInput: HTMLInputElement;
-  private readonly direccionInput: HTMLInputElement;
+  private readonly direccionDomInput: HTMLInputElement;
+  private readonly direccionLegacyInput: HTMLInputElement | null;
   private readonly dptoSelect: HTMLSelectElement;
   private readonly provSelect: HTMLSelectElement;
   private readonly distSelect: HTMLSelectElement;
   private readonly ubigeoInput: HTMLInputElement;
   private readonly ubigeoStatus: HTMLElement;
-  private readonly rucEmpresaInput: HTMLInputElement;
+  private readonly categoriaLabSelect: HTMLSelectElement;
+  private readonly especialidadLabInput: HTMLInputElement;
+  private readonly pillSi: HTMLInputElement | null;
+  private readonly pillNo: HTMLInputElement | null;
+  private readonly pillSiLabel: HTMLElement | null;
+  private readonly pillNoLabel: HTMLElement | null;
+  private readonly bloqueCondicionalObra: HTMLElement | null;
+  private readonly rucEmpleadorInput: HTMLInputElement;
+  private readonly noConoceRucCheck: HTMLInputElement | null;
+  private readonly rucReqSpan: HTMLElement | null;
   private readonly nombreProyectoInput: HTMLInputElement;
-  private readonly categoriaSelect: HTMLSelectElement;
-  private readonly especialidadInput: HTMLInputElement;
   private readonly hijosInput: HTMLInputElement;
   private readonly sinHijosCheck: HTMLInputElement;
   private readonly agregarHijoBtn: HTMLButtonElement;
@@ -100,18 +109,31 @@ export class FormController {
       document.getElementById('dni')) as HTMLInputElement;
     this.apellidosInput = document.getElementById('apellidos') as HTMLInputElement;
     this.nombresInput = document.getElementById('nombres') as HTMLInputElement;
+    this.fechaNacimientoInput = document.getElementById('fecha_nacimiento') as HTMLInputElement | null;
     this.celularInput = document.getElementById('celular') as HTMLInputElement;
     this.correoInput = document.getElementById('correo') as HTMLInputElement;
-    this.direccionInput = document.getElementById('direccion') as HTMLInputElement;
+    this.direccionDomInput = (document.getElementById('direccion_domiciliaria') ||
+      document.getElementById('direccion')) as HTMLInputElement;
+    this.direccionLegacyInput = document.getElementById('direccion') as HTMLInputElement | null;
     this.dptoSelect = document.getElementById('departamento') as HTMLSelectElement;
     this.provSelect = document.getElementById('provincia') as HTMLSelectElement;
     this.distSelect = document.getElementById('distrito') as HTMLSelectElement;
     this.ubigeoInput = document.getElementById('ubigeo') as HTMLInputElement;
     this.ubigeoStatus = document.getElementById('ubigeoStatus') as HTMLElement;
-    this.rucEmpresaInput = document.getElementById('ruc_empresa') as HTMLInputElement;
+    this.categoriaLabSelect = (document.getElementById('categoria_laboral') ||
+      document.getElementById('categoria')) as HTMLSelectElement;
+    this.especialidadLabInput = (document.getElementById('especialidad_laboral') ||
+      document.getElementById('especialidad')) as HTMLInputElement;
+    this.pillSi = document.getElementById('trabajaObraSi') as HTMLInputElement | null;
+    this.pillNo = document.getElementById('trabajaObraNo') as HTMLInputElement | null;
+    this.pillSiLabel = document.getElementById('pillSiLabel') as HTMLElement | null;
+    this.pillNoLabel = document.getElementById('pillNoLabel') as HTMLElement | null;
+    this.bloqueCondicionalObra = document.getElementById('bloqueCondicionalObra') as HTMLElement | null;
+    this.rucEmpleadorInput = (document.getElementById('ruc_empleador') ||
+      document.getElementById('ruc_empresa')) as HTMLInputElement;
+    this.noConoceRucCheck = document.getElementById('no_conoce_ruc') as HTMLInputElement | null;
+    this.rucReqSpan = document.getElementById('rucReq') as HTMLElement | null;
     this.nombreProyectoInput = document.getElementById('nombre_proyecto') as HTMLInputElement;
-    this.categoriaSelect = document.getElementById('categoria') as HTMLSelectElement;
-    this.especialidadInput = document.getElementById('especialidad') as HTMLInputElement;
     this.hijosInput = document.getElementById('hijos') as HTMLInputElement;
     this.sinHijosCheck = document.getElementById('sinHijos') as HTMLInputElement;
     this.agregarHijoBtn = document.getElementById('agregarHijo') as HTMLButtonElement;
@@ -128,6 +150,8 @@ export class FormController {
     this.toastTextEl = document.getElementById('toastText') as HTMLElement;
 
     this.initDocumentTypeSwitch();
+    this.initWorkPills();
+    this.initNoConoceRuc();
     this.initRealtimeValidation();
     this.initConsentAccordion();
     this.initChildrenControls();
@@ -192,25 +216,57 @@ export class FormController {
   private updateDocumentRules(): void {
     if (!this.tipoDocSelect || !this.numDocInput) return;
     const tipo = this.tipoDocSelect.value;
-    if (tipo === 'Carnet de Extranjería' || tipo === 'Carnet de Extranjeria') {
+
+    if (tipo === 'Carné de extranjería' || tipo === 'Carnet de Extranjería' || tipo === 'Carnet de Extranjeria') {
       if (this.docLabel) {
-        this.docLabel.innerHTML = 'Número de documento (Carnet de Extranjería) <span class="req">*</span>';
+        this.docLabel.innerHTML = 'Número de documento <span class="req">*</span>';
       }
-      this.numDocInput.placeholder = '9 dígitos numéricos';
+      this.numDocInput.placeholder = '9 dígitos';
       this.numDocInput.maxLength = 9;
       this.numDocInput.pattern = '[0-9]{9}';
       if (this.docHint) {
-        this.docHint.textContent = 'Ingresa exactamente 9 dígitos numéricos.';
+        this.docHint.textContent = 'El formato depende del tipo de documento.';
+      }
+    } else if (tipo === 'Pasaporte') {
+      if (this.docLabel) {
+        this.docLabel.innerHTML = 'Número de documento <span class="req">*</span>';
+      }
+      this.numDocInput.placeholder = 'N.° de Pasaporte';
+      this.numDocInput.maxLength = 12;
+      this.numDocInput.removeAttribute('pattern');
+      if (this.docHint) {
+        this.docHint.textContent = 'El formato depende del tipo de documento.';
+      }
+    } else if (tipo === 'Permiso temporal de permanencia') {
+      if (this.docLabel) {
+        this.docLabel.innerHTML = 'Número de documento <span class="req">*</span>';
+      }
+      this.numDocInput.placeholder = 'N.° de PTP';
+      this.numDocInput.maxLength = 15;
+      this.numDocInput.removeAttribute('pattern');
+      if (this.docHint) {
+        this.docHint.textContent = 'El formato depende del tipo de documento.';
+      }
+    } else if (tipo === 'Otro documento') {
+      if (this.docLabel) {
+        this.docLabel.innerHTML = 'Número de documento <span class="req">*</span>';
+      }
+      this.numDocInput.placeholder = 'N.° de documento';
+      this.numDocInput.maxLength = 20;
+      this.numDocInput.removeAttribute('pattern');
+      if (this.docHint) {
+        this.docHint.textContent = 'El formato depende del tipo de documento.';
       }
     } else {
+      // DNI por defecto
       if (this.docLabel) {
-        this.docLabel.innerHTML = 'Número de documento (DNI) <span class="req">*</span>';
+        this.docLabel.innerHTML = 'Número de documento <span class="req">*</span>';
       }
-      this.numDocInput.placeholder = '8 dígitos numéricos';
+      this.numDocInput.placeholder = '8 dígitos';
       this.numDocInput.maxLength = 8;
       this.numDocInput.pattern = '[0-9]{8}';
       if (this.docHint) {
-        this.docHint.textContent = 'Ingresa exactamente 8 dígitos numéricos.';
+        this.docHint.textContent = 'El formato depende del tipo de documento.';
       }
     }
 
@@ -220,19 +276,98 @@ export class FormController {
     this.setFieldError(this.numDocInput, '');
   }
 
-  private initRealtimeValidation(): void {
-    [this.numDocInput, this.celularInput, this.rucEmpresaInput].forEach((el) => {
-      if (!el) return;
-      el.addEventListener('input', () => {
-        el.value = el.value.replace(/\D/g, '');
-        this.setFieldError(el, '');
-      });
-    });
+  private updateWorkPills = (): void => {
+    const isSi = this.pillSi?.checked ?? true;
+    if (isSi) {
+      this.pillSiLabel?.classList.add('active');
+      this.pillNoLabel?.classList.remove('active');
+      if (this.bloqueCondicionalObra) {
+        this.bloqueCondicionalObra.hidden = false;
+      }
+      if (this.nombreProyectoInput) this.nombreProyectoInput.required = true;
+      this.updateRucRequirement();
+    } else {
+      this.pillNoLabel?.classList.add('active');
+      this.pillSiLabel?.classList.remove('active');
+      if (this.bloqueCondicionalObra) {
+        this.bloqueCondicionalObra.hidden = true;
+      }
+      if (this.nombreProyectoInput) {
+        this.nombreProyectoInput.required = false;
+        this.setFieldError(this.nombreProyectoInput, '');
+      }
+      if (this.rucEmpleadorInput) {
+        this.rucEmpleadorInput.required = false;
+        this.setFieldError(this.rucEmpleadorInput, '');
+      }
+    }
+  };
 
-    [this.apellidosInput, this.nombresInput, this.direccionInput].forEach((el) => {
+  private initWorkPills(): void {
+    this.pillSi?.addEventListener('change', this.updateWorkPills);
+    this.pillNo?.addEventListener('change', this.updateWorkPills);
+    this.updateWorkPills();
+  }
+
+  private initNoConoceRuc(): void {
+    if (!this.noConoceRucCheck) return;
+    this.noConoceRucCheck.addEventListener('change', () => {
+      this.updateRucRequirement();
+    });
+  }
+
+  private updateRucRequirement(): void {
+    if (!this.pillSi?.checked) return;
+    const noConoce = this.noConoceRucCheck?.checked ?? false;
+    if (noConoce) {
+      if (this.rucEmpleadorInput) {
+        this.rucEmpleadorInput.disabled = true;
+        this.rucEmpleadorInput.value = '';
+        this.rucEmpleadorInput.required = false;
+        this.setFieldError(this.rucEmpleadorInput, '');
+      }
+      if (this.rucReqSpan) this.rucReqSpan.style.display = 'none';
+    } else {
+      if (this.rucEmpleadorInput) {
+        this.rucEmpleadorInput.disabled = false;
+        this.rucEmpleadorInput.required = true;
+      }
+      if (this.rucReqSpan) this.rucReqSpan.style.display = 'inline';
+    }
+  }
+
+  private initRealtimeValidation(): void {
+    if (this.numDocInput) {
+      this.numDocInput.addEventListener('input', () => {
+        const tipo = this.tipoDocSelect.value;
+        if (tipo === 'DNI' || tipo === 'Carné de extranjería' || tipo === 'Carnet de Extranjería') {
+          this.numDocInput.value = this.numDocInput.value.replace(/\D/g, '');
+        }
+        this.setFieldError(this.numDocInput, '');
+      });
+    }
+
+    if (this.celularInput) {
+      this.celularInput.addEventListener('input', () => {
+        this.celularInput.value = this.celularInput.value.replace(/\D/g, '');
+        this.setFieldError(this.celularInput, '');
+      });
+    }
+
+    if (this.rucEmpleadorInput) {
+      this.rucEmpleadorInput.addEventListener('input', () => {
+        this.rucEmpleadorInput.value = this.rucEmpleadorInput.value.replace(/\D/g, '');
+        this.setFieldError(this.rucEmpleadorInput, '');
+      });
+    }
+
+    [this.apellidosInput, this.nombresInput, this.direccionDomInput].forEach((el) => {
       if (!el) return;
       el.addEventListener('input', () => {
         this.setFieldError(el, '');
+        if (el === this.direccionDomInput && this.direccionLegacyInput) {
+          this.direccionLegacyInput.value = this.direccionDomInput.value;
+        }
       });
     });
 
@@ -247,16 +382,16 @@ export class FormController {
       });
     }
 
-    if (this.rucEmpresaInput) {
-      this.rucEmpresaInput.addEventListener('blur', () => {
-        const val = this.rucEmpresaInput.value.trim();
+    if (this.rucEmpleadorInput) {
+      this.rucEmpleadorInput.addEventListener('blur', () => {
+        const val = this.rucEmpleadorInput.value.trim();
         if (val && !/^[0-9]{11}$/.test(val)) {
           this.setFieldError(
-            this.rucEmpresaInput,
-            'El RUC debe tener exactamente 11 dígitos numéricos.'
+            this.rucEmpleadorInput,
+            'El RUC del empleador debe tener exactamente 11 dígitos numéricos.'
           );
         } else {
-          this.setFieldError(this.rucEmpresaInput, '');
+          this.setFieldError(this.rucEmpleadorInput, '');
         }
       });
     }
@@ -269,7 +404,7 @@ export class FormController {
       this.consentToggle.setAttribute('aria-expanded', String(willOpen));
       this.consentToggle.textContent = willOpen
         ? 'Ocultar autorización'
-        : 'Ver autorización completa';
+        : 'Leer autorización completa';
       if (willOpen) {
         this.consentDetail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }
@@ -308,15 +443,15 @@ export class FormController {
       card.innerHTML = `
         <div class="child-badge">Hijo(a)<br>${i}</div>
         <div class="field">
-          <label for="hijo_${i}_edad">Edad <span class="req">*</span></label>
-          <input id="hijo_${i}_edad" name="hijo_${i}_edad" type="number" inputmode="numeric" min="0" max="17" step="1" required placeholder="Edad" aria-label="Edad del hijo ${i}">
+          <label for="hijo_${i}_edad">Edad del hijo ${i} <span class="req">*</span></label>
+          <input id="hijo_${i}_edad" name="hijo_${i}_edad" type="number" inputmode="numeric" min="0" max="17" step="1" required placeholder="0 a 17 años" aria-label="Edad del hijo ${i}">
         </div>
         <div class="field">
           <label for="hijo_${i}_sexo">Sexo <span class="req">*</span></label>
           <select id="hijo_${i}_sexo" name="hijo_${i}_sexo" required aria-label="Sexo del hijo ${i}">
-            <option value="">Selecciona</option>
-            <option value="Masculino">Masculino</option>
+            <option value="" disabled selected>Selecciona</option>
             <option value="Femenino">Femenino</option>
+            <option value="Masculino">Masculino</option>
           </select>
         </div>`;
       this.childrenList.appendChild(card);
@@ -325,7 +460,7 @@ export class FormController {
         const edadEl = document.getElementById(`hijo_${i}_edad`) as HTMLInputElement | null;
         const sexoEl = document.getElementById(`hijo_${i}_sexo`) as HTMLSelectElement | null;
         if (edadEl) edadEl.value = previous[i - 1].edad;
-        if (sexoEl) sexoEl.value = previous[i - 1].sexo;
+        if (sexoEl && previous[i - 1].sexo) sexoEl.value = previous[i - 1].sexo;
       }
     }
   };
@@ -539,43 +674,57 @@ export class FormController {
         return;
       }
 
-      const rawTipo = this.tipoDocSelect.value;
-      const tipoDocValue: TipoDocumento =
-        rawTipo === 'Carnet de Extranjería' || rawTipo === 'Carnet de Extranjeria'
-          ? 'Carnet de Extranjería'
-          : 'DNI';
+      const rawTipo = this.tipoDocSelect.value as TipoDocumento;
+      const tipoDocValue: TipoDocumento = rawTipo || 'DNI';
 
-      const numDocVal = this.numDocInput.value.trim().replace(/\D/g, '');
-      const expectedLength = tipoDocValue === 'Carnet de Extranjería' ? 9 : 8;
-      const docName =
-        tipoDocValue === 'Carnet de Extranjería' ? 'Carnet de Extranjería' : 'DNI';
+      const numDocVal = this.numDocInput.value.trim();
+      let docError = '';
+      if (tipoDocValue === 'DNI') {
+        const digits = numDocVal.replace(/\D/g, '');
+        if (digits.length !== 8) {
+          docError = 'El DNI debe tener exactamente 8 dígitos numéricos.';
+        }
+      } else if (
+        tipoDocValue === 'Carné de extranjería' ||
+        tipoDocValue === 'Carnet de Extranjería'
+      ) {
+        const digits = numDocVal.replace(/\D/g, '');
+        if (digits.length !== 9) {
+          docError = 'El Carné de extranjería debe tener exactamente 9 dígitos numéricos.';
+        }
+      } else {
+        if (!/^[A-Za-z0-9\-\s]{4,25}$/.test(numDocVal)) {
+          docError = 'El número de documento debe tener entre 4 y 25 caracteres alfanuméricos.';
+        }
+      }
 
-      if (numDocVal.length !== expectedLength) {
-        this.setFieldError(
-          this.numDocInput,
-          `El ${docName} debe tener exactamente ${expectedLength} dígitos numéricos.`
-        );
-        this.announce(
-          'Documento inválido',
-          `El ${docName} debe tener exactamente ${expectedLength} dígitos numéricos.`,
-          true
-        );
+      if (docError) {
+        this.setFieldError(this.numDocInput, docError);
+        this.announce('Documento inválido', docError, true);
         this.numDocInput.focus();
         return;
       }
 
-      const rucVal = this.rucEmpresaInput.value.trim().replace(/\D/g, '');
-      if (rucVal.length > 0 && rucVal.length !== 11) {
+      const fechaNacVal = this.fechaNacimientoInput ? this.fechaNacimientoInput.value.trim() : '';
+      if (this.fechaNacimientoInput && !fechaNacVal) {
+        this.setFieldError(this.fechaNacimientoInput, 'Selecciona tu fecha de nacimiento.');
+        this.announce('Fecha requerida', 'Selecciona tu fecha de nacimiento.', true);
+        this.fechaNacimientoInput.focus();
+        return;
+      }
+
+      const celularVal = this.celularInput.value.trim().replace(/\D/g, '');
+      if (celularVal.length !== 9) {
         this.setFieldError(
-          this.rucEmpresaInput,
-          'El RUC de la empresa debe tener exactamente 11 dígitos numéricos.'
+          this.celularInput,
+          'El teléfono celular debe tener exactamente 9 dígitos numéricos.'
         );
         this.announce(
-          'RUC inválido',
-          'Si ingresas el RUC de la empresa, debe tener exactamente 11 dígitos numéricos.',
+          'Celular inválido',
+          'El teléfono celular debe tener exactamente 9 dígitos numéricos.',
           true
         );
-        this.rucEmpresaInput.focus();
+        this.celularInput.focus();
         return;
       }
 
@@ -584,6 +733,38 @@ export class FormController {
         this.distSelect.focus();
         return;
       }
+
+      const trabajaEnObra = this.pillSi ? this.pillSi.checked : true;
+      const noConoceRuc = Boolean(this.noConoceRucCheck && this.noConoceRucCheck.checked);
+      const rucRaw = this.rucEmpleadorInput ? this.rucEmpleadorInput.value.trim().replace(/\D/g, '') : '';
+      const nombreProyectoVal = this.nombreProyectoInput ? this.nombreProyectoInput.value.trim() : '';
+
+      if (trabajaEnObra) {
+        if (!noConoceRuc) {
+          if (rucRaw.length !== 11) {
+            if (this.rucEmpleadorInput) {
+              this.setFieldError(
+                this.rucEmpleadorInput,
+                'El RUC del empleador debe tener exactamente 11 dígitos numéricos o marca "No conozco el RUC".'
+              );
+              this.rucEmpleadorInput.focus();
+            }
+            this.announce(
+              'RUC inválido',
+              'Ingresa los 11 dígitos del RUC de tu empleador o marca la casilla si no lo conoces.',
+              true
+            );
+            return;
+          }
+        }
+        if (!nombreProyectoVal && this.nombreProyectoInput) {
+          this.setFieldError(this.nombreProyectoInput, 'Ingresa el nombre del proyecto u obra.');
+          this.announce('Nombre de obra requerido', 'Ingresa el nombre del proyecto u obra donde trabajas.', true);
+          this.nombreProyectoInput.focus();
+          return;
+        }
+      }
+      const rucFinal = trabajaEnObra && !noConoceRuc ? rucRaw : '';
 
       const countHijos = Math.max(
         0,
@@ -603,23 +784,36 @@ export class FormController {
       const dptoText = this.dptoSelect.options[this.dptoSelect.selectedIndex]?.text || '';
       const provText = this.provSelect.options[this.provSelect.selectedIndex]?.text || '';
       const distText = this.distSelect.options[this.distSelect.selectedIndex]?.text || '';
+      const direccionVal =
+        this.direccionDomInput?.value.trim() ||
+        this.direccionLegacyInput?.value.trim() ||
+        '';
+      const categoriaVal = this.categoriaLabSelect.value;
+      const especialidadVal = this.especialidadLabInput.value.trim();
 
       const payload: ParticipantePayload = {
         tipo_documento: tipoDocValue,
         numero_documento: numDocVal,
         apellidos: this.apellidosInput.value.trim(),
         nombres: this.nombresInput.value.trim(),
-        celular: this.celularInput.value.trim(),
+        fecha_nacimiento: fechaNacVal,
+        celular: celularVal,
         correo: this.correoInput.value.trim(),
-        direccion: this.direccionInput.value.trim(),
+        direccion_domiciliaria: direccionVal,
+        direccion: direccionVal,
         departamento: dptoText,
         provincia: provText,
         distrito: distText,
         ubigeo: this.ubigeoInput.value,
-        ruc_empresa: rucVal,
-        nombre_proyecto: this.nombreProyectoInput.value.trim(),
-        categoria: this.categoriaSelect.value,
-        especialidad: this.especialidadInput.value.trim(),
+        categoria_laboral: categoriaVal,
+        categoria: categoriaVal,
+        especialidad_laboral: especialidadVal,
+        especialidad: especialidadVal,
+        trabaja_en_obra: trabajaEnObra,
+        ruc_empleador: rucFinal,
+        ruc_empresa: rucFinal,
+        no_conoce_ruc: trabajaEnObra ? noConoceRuc : false,
+        nombre_proyecto: trabajaEnObra ? nombreProyectoVal : '',
         hijos_menores: countHijos,
         sin_hijos: countHijos === 0,
         hijos,
@@ -643,7 +837,7 @@ export class FormController {
 
         if (response.status === 409) {
           this.setFieldError(this.numDocInput, result.message);
-          this.announce(`${docName} ya registrado`, result.message, true);
+          this.announce(`${tipoDocValue} ya registrado`, result.message, true);
           this.numDocInput.focus();
           return;
         }
@@ -681,6 +875,14 @@ export class FormController {
       this.tipoDocSelect.value = 'DNI';
       this.updateDocumentRules();
     }
+    if (this.pillSi && this.pillNo) {
+      this.pillSi.checked = true;
+      this.pillNo.checked = false;
+    }
+    if (this.noConoceRucCheck) {
+      this.noConoceRucCheck.checked = false;
+    }
+    this.updateWorkPills();
     if (this.dptoSelect) {
       this.dptoSelect.value = '';
     }

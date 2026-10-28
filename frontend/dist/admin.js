@@ -329,7 +329,9 @@ class AdminPortalController {
                 return false;
             }
             const activePayload = (await activeRes.json());
-            const trashPayload = (await trashRes.json());
+            const trashPayload = trashRes.ok
+                ? (await trashRes.json().catch(() => ({ ok: false, total: 0, filtrados: 0, data: [] })))
+                : { ok: false, total: 0, filtrados: 0, data: [] };
             if (!activePayload.ok) {
                 this.notify('Error', activePayload.message || 'No se pudieron cargar los registros.', true);
                 return false;
@@ -464,19 +466,21 @@ class AdminPortalController {
         <td>
           <span class="doc-badge">${r.tipo_documento || 'DNI'}</span>
           <strong class="doc-num">${numDoc}</strong>
+          ${r.fecha_nacimiento ? `<small class="participant-meta">Nac.: ${r.fecha_nacimiento}</small>` : ''}
         </td>
         <td>
           <div class="participant-name">${nombreCompleto}</div>
           <small class="participant-meta">Hijos menores: ${r.hijos_menores ?? 0}</small>
         </td>
         <td>
-          <span class="doc-badge">${r.categoria}</span>
-          ${r.especialidad ? `<small class="participant-meta">Esp.: ${r.especialidad}</small>` : ''}
-          ${r.ruc_empresa ? `<small class="participant-meta">RUC: ${r.ruc_empresa}</small>` : ''}
+          <span class="doc-badge">${r.categoria_laboral || r.categoria || '-'}</span>
+          ${(r.especialidad_laboral || r.especialidad) ? `<small class="participant-meta">Esp.: ${r.especialidad_laboral || r.especialidad}</small>` : ''}
+          ${r.trabaja_en_obra !== undefined ? `<small class="participant-meta">En obra: ${r.trabaja_en_obra ? 'Sí' : 'No'}</small>` : ''}
+          ${(r.ruc_empleador || r.ruc_empresa) ? `<small class="participant-meta">RUC: ${r.ruc_empleador || r.ruc_empresa}</small>` : ''}
           ${r.nombre_proyecto ? `<small class="participant-meta">Proy.: ${r.nombre_proyecto}</small>` : ''}
         </td>
         <td>
-          <div>${r.direccion || '-'}</div>
+          <div>${r.direccion_domiciliaria || r.direccion || '-'}</div>
           <small class="participant-meta">${ubicacion}</small>
         </td>
         <td><a class="table-link" href="tel:${r.celular}">${r.celular}</a></td>

@@ -217,19 +217,26 @@ export function initializeSchema(db: SqliteConnection): void {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       tipo_documento TEXT NOT NULL DEFAULT 'DNI',
       numero_documento TEXT NOT NULL UNIQUE,
-      apellidos TEXT NOT NULL,
       nombres TEXT NOT NULL,
+      apellidos TEXT NOT NULL,
+      fecha_nacimiento TEXT NOT NULL DEFAULT '',
       celular TEXT NOT NULL,
       correo TEXT NOT NULL DEFAULT '',
-      direccion TEXT NOT NULL,
+      direccion_domiciliaria TEXT NOT NULL DEFAULT '',
+      direccion TEXT NOT NULL DEFAULT '',
       departamento TEXT NOT NULL,
       provincia TEXT NOT NULL,
       distrito TEXT NOT NULL,
       ubigeo TEXT NOT NULL DEFAULT '',
-      ruc_empresa TEXT NOT NULL DEFAULT '',
-      nombre_proyecto TEXT NOT NULL DEFAULT '',
-      categoria TEXT NOT NULL,
+      categoria_laboral TEXT NOT NULL DEFAULT '',
+      categoria TEXT NOT NULL DEFAULT '',
+      especialidad_laboral TEXT NOT NULL DEFAULT '',
       especialidad TEXT NOT NULL DEFAULT '',
+      trabaja_en_obra INTEGER NOT NULL DEFAULT 1,
+      ruc_empleador TEXT NOT NULL DEFAULT '',
+      ruc_empresa TEXT NOT NULL DEFAULT '',
+      no_conoce_ruc INTEGER NOT NULL DEFAULT 0,
+      nombre_proyecto TEXT NOT NULL DEFAULT '',
       hijos_menores INTEGER NOT NULL DEFAULT 0,
       hijos_json TEXT NOT NULL DEFAULT '[]',
       consentimiento_datos_personales INTEGER NOT NULL CHECK (consentimiento_datos_personales IN (0, 1)) DEFAULT 1,
@@ -251,7 +258,7 @@ export function initializeSchema(db: SqliteConnection): void {
 
   db.exec(createTableSQL);
 
-  // Migración incremental para agregar columnas de Soft Delete si la tabla ya existía sin ellas
+  // Migración incremental para agregar columnas nuevas si la tabla ya existía sin ellas
   const currentCols = new Set(
     (db.prepare(`PRAGMA table_info(participantes)`).all() as Array<{ name: string }>).map(
       (c) => c.name
@@ -266,6 +273,45 @@ export function initializeSchema(db: SqliteConnection): void {
   if (!currentCols.has('fecha_eliminacion')) {
     db.exec(`ALTER TABLE participantes ADD COLUMN fecha_eliminacion TEXT NULL;`);
     console.log('[SQLite] Columna "fecha_eliminacion" agregada a la tabla "participantes".');
+  }
+
+  if (!currentCols.has('fecha_nacimiento')) {
+    db.exec(`ALTER TABLE participantes ADD COLUMN fecha_nacimiento TEXT NOT NULL DEFAULT '';`);
+    console.log('[SQLite] Columna "fecha_nacimiento" agregada a la tabla "participantes".');
+  }
+
+  if (!currentCols.has('direccion_domiciliaria')) {
+    db.exec(`ALTER TABLE participantes ADD COLUMN direccion_domiciliaria TEXT NOT NULL DEFAULT '';`);
+    db.exec(`UPDATE participantes SET direccion_domiciliaria = direccion WHERE direccion_domiciliaria = '' AND direccion IS NOT NULL;`);
+    console.log('[SQLite] Columna "direccion_domiciliaria" agregada a la tabla "participantes".');
+  }
+
+  if (!currentCols.has('categoria_laboral')) {
+    db.exec(`ALTER TABLE participantes ADD COLUMN categoria_laboral TEXT NOT NULL DEFAULT '';`);
+    db.exec(`UPDATE participantes SET categoria_laboral = categoria WHERE categoria_laboral = '' AND categoria IS NOT NULL;`);
+    console.log('[SQLite] Columna "categoria_laboral" agregada a la tabla "participantes".');
+  }
+
+  if (!currentCols.has('especialidad_laboral')) {
+    db.exec(`ALTER TABLE participantes ADD COLUMN especialidad_laboral TEXT NOT NULL DEFAULT '';`);
+    db.exec(`UPDATE participantes SET especialidad_laboral = especialidad WHERE especialidad_laboral = '' AND especialidad IS NOT NULL;`);
+    console.log('[SQLite] Columna "especialidad_laboral" agregada a la tabla "participantes".');
+  }
+
+  if (!currentCols.has('trabaja_en_obra')) {
+    db.exec(`ALTER TABLE participantes ADD COLUMN trabaja_en_obra INTEGER NOT NULL DEFAULT 1;`);
+    console.log('[SQLite] Columna "trabaja_en_obra" agregada a la tabla "participantes".');
+  }
+
+  if (!currentCols.has('ruc_empleador')) {
+    db.exec(`ALTER TABLE participantes ADD COLUMN ruc_empleador TEXT NOT NULL DEFAULT '';`);
+    db.exec(`UPDATE participantes SET ruc_empleador = ruc_empresa WHERE ruc_empleador = '' AND ruc_empresa IS NOT NULL;`);
+    console.log('[SQLite] Columna "ruc_empleador" agregada a la tabla "participantes".');
+  }
+
+  if (!currentCols.has('no_conoce_ruc')) {
+    db.exec(`ALTER TABLE participantes ADD COLUMN no_conoce_ruc INTEGER NOT NULL DEFAULT 0;`);
+    console.log('[SQLite] Columna "no_conoce_ruc" agregada a la tabla "participantes".');
   }
 
   db.exec(`CREATE INDEX IF NOT EXISTS idx_participantes_activo ON participantes (activo);`);

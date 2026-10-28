@@ -46,7 +46,7 @@
               <div class="carousel-track" id="carouselTrack">
                 <figure class="carousel-slide">
                   <picture>
-                    <source media="(max-width: 768px)" srcset="assets/banner-mobile-01.jpg">
+                    <source media="(max-width: 768px)" srcset="assets/banner-mobile-01.jpg?v=20261027_03">
                     <img
                       src="assets/banner-desktop.jpg"
                       alt="¡Ahora te toca registrarte! Completa tus datos en esta página - CONA"
@@ -57,7 +57,7 @@
                 </figure>
                 <figure class="carousel-slide">
                   <picture>
-                    <source media="(max-width: 768px)" srcset="assets/banner-mobile-02.jpg">
+                    <source media="(max-width: 768px)" srcset="assets/banner-mobile-02.jpg?v=20261027_03">
                     <img
                       src="assets/banner-desktop-02.jpg"
                       alt="¡Premios para tu hogar! Registra tus datos y participa en el sorteo - CONA"
@@ -78,71 +78,92 @@
     <main>
       <section class="form-shell" id="actualizacion">
         <div class="intro">
-          <h2>Actualiza tus datos y participa</h2>
-          <p>Mantén tu información al día para que CONA pueda estar más cerca de ti, brindarte una mejor atención y acercarte a sus servicios y beneficios. Completa la actualización de tus datos y <strong>participa automáticamente en el sorteo.</strong></p>
-          <p class="required-note"><strong>*</strong> Campos obligatorios</p>
+          <div class="single-page-badge">Formulario de página única</div>
+          <div class="divider-orange" role="separator" aria-hidden="true"></div>
+          <h2 class="main-form-title">REGÍSTRATE Y PARTICIPA</h2>
+          <p class="intro-p">Déjanos tus datos para que podamos contactarte y darte a conocer los servicios y beneficios a los que accedes gracias al aporte que realizas a CONA. Queremos hacer visible lo que tu aporte construye.</p>
+          <p class="intro-p">Regístrate y participa automáticamente en el sorteo de diversos productos.</p>
+          <p class="required-note"><strong>*</strong> Campos obligatorios.</p>
         </div>
 
         <form id="updateDataForm" novalidate>
-          <!-- 1 & 2. DOCUMENTO DE IDENTIDAD E IDENTIFICACIÓN PERSONAL -->
-          <section class="section">
-            <h3 class="section-title"><span class="brick"></span>1. Identificación del aportante</h3>
+          <!-- SECCIÓN 1. IDENTIFICACIÓN Y CONTACTO -->
+          <section class="section" id="seccionIdentificacion">
+            <h3 class="section-title"><span class="brick"></span>Sección 1. Identificación y contacto</h3>
             <div class="grid">
+              <!-- Fila 1 (2 columnas): Tipo de documento y Número de documento -->
               <div class="field">
                 <label for="tipo_documento">Tipo de documento <span class="req">*</span></label>
                 <select id="tipo_documento" name="tipo_documento" required>
-                  <option value="DNI" selected>DNI</option>
-                  <option value="Carnet de Extranjería">Carnet de Extranjería</option>
+                  <option value="" disabled selected>Selecciona</option>
+                  <option value="DNI">DNI</option>
+                  <option value="Carné de extranjería">Carné de extranjería</option>
+                  <option value="Carnet de Extranjería" hidden>Carnet de Extranjería</option>
+                  <option value="Pasaporte">Pasaporte</option>
+                  <option value="Permiso temporal de permanencia">Permiso temporal de permanencia</option>
+                  <option value="Otro documento">Otro documento</option>
                 </select>
               </div>
               <div class="field">
-                <label for="numero_documento" id="docLabel">Número de documento (DNI) <span class="req">*</span></label>
-                <input id="numero_documento" name="numero_documento" type="text" inputmode="numeric" autocomplete="off" maxlength="8" pattern="[0-9]{8}" required placeholder="8 dígitos numéricos" />
-                <small class="hint" id="docHint">Ingresa exactamente 8 dígitos numéricos.</small>
+                <label for="numero_documento" id="docLabel">Número de documento <span class="req">*</span></label>
+                <input id="numero_documento" name="numero_documento" type="text" autocomplete="off" required placeholder="Ingresa tu documento" />
+                <small class="hint" id="docHint">El formato depende del tipo de documento.</small>
               </div>
 
-              <div class="field">
-                <label for="apellidos">Apellidos <span class="req">*</span></label>
-                <input id="apellidos" name="apellidos" type="text" autocomplete="family-name" minlength="2" maxlength="100" required placeholder="Ej. Pérez López" />
-              </div>
+              <!-- Fila 2 (2 columnas): Nombres y Apellidos -->
               <div class="field">
                 <label for="nombres">Nombres <span class="req">*</span></label>
                 <input id="nombres" name="nombres" type="text" autocomplete="given-name" minlength="2" maxlength="100" required placeholder="Ej. Juan Carlos" />
               </div>
+              <div class="field">
+                <label for="apellidos">Apellidos <span class="req">*</span></label>
+                <input id="apellidos" name="apellidos" type="text" autocomplete="family-name" minlength="2" maxlength="100" required placeholder="Ej. Pérez López" />
+              </div>
+
+              <!-- Fila 3 (2 columnas): Fecha de nacimiento y Teléfono celular -->
+              <div class="field">
+                <label for="fecha_nacimiento">Fecha de nacimiento <span class="req">*</span></label>
+                <input id="fecha_nacimiento" name="fecha_nacimiento" type="date" required />
+                <small class="hint">El selector del dispositivo permite elegir rápidamente año, mes y día.</small>
+              </div>
+              <div class="field">
+                <label for="celular">Teléfono celular <span class="req">*</span></label>
+                <input id="celular" name="celular" type="tel" inputmode="numeric" autocomplete="tel" maxlength="9" pattern="[0-9]{9}" required placeholder="9 dígitos" />
+                <small class="hint">9 dígitos numéricos.</small>
+              </div>
+
+              <!-- Fila 4 (ancho completo): Correo electrónico (opcional) -->
+              <div class="field full">
+                <label for="correo">Correo electrónico <span class="optional-label">(opcional)</span></label>
+                <input id="correo" name="correo" type="email" autocomplete="email" placeholder="nombre@correo.com" />
+              </div>
             </div>
           </section>
 
-          <!-- 3. CONTACTO Y RESIDENCIA -->
-          <section class="section">
-            <h3 class="section-title"><span class="brick"></span>2. Contacto y residencia</h3>
+          <!-- SECCIÓN 2. DOMICILIO -->
+          <section class="section" id="seccionDomicilio">
+            <h3 class="section-title"><span class="brick"></span>Sección 2. Domicilio</h3>
             <div class="grid">
-              <div class="field">
-                <label for="celular">Teléfono celular <span class="req">*</span></label>
-                <input id="celular" name="celular" type="tel" inputmode="numeric" autocomplete="tel" maxlength="9" pattern="[0-9]{9}" required placeholder="9 dígitos numéricos" />
-                <small class="hint">Ingresa exactamente 9 dígitos numéricos.</small>
-              </div>
-              <div class="field">
-                <label for="correo">Correo electrónico <span style="font-weight:500; color:var(--muted);">(opcional)</span></label>
-                <input id="correo" name="correo" type="email" autocomplete="email" placeholder="nombre@correo.com" />
-                <small class="hint">Si lo ingresas, debe tener un formato de correo válido.</small>
-              </div>
-
+              <!-- Fila 1 (ancho completo): Dirección domiciliaria -->
               <div class="field full">
-                <label for="direccion">Dirección de residencia completa <span class="req">*</span></label>
-                <input id="direccion" name="direccion" type="text" autocomplete="street-address" minlength="3" maxlength="200" required placeholder="Ej. Av. Prolongación Cangallo N.° 670, Urb. / Mz. / Lt." />
+                <label for="direccion_domiciliaria">Dirección domiciliaria <span class="req">*</span></label>
+                <input id="direccion_domiciliaria" name="direccion_domiciliaria" type="text" autocomplete="street-address" minlength="3" maxlength="200" required placeholder="Ej. Av. Los Próceres 125, Mz. B, Lt. 8" />
+                <!-- Input de compatibilidad -->
+                <input type="hidden" id="direccion" name="direccion" />
               </div>
 
+              <!-- Fila 2 (3 columnas): Departamento, Provincia, Distrito -->
               <div class="field full">
                 <label>Ubicación (Departamento / Provincia / Distrito) <span class="req">*</span></label>
                 <div class="grid-3">
                   <select id="departamento" name="departamento" required aria-label="Departamento">
-                    <option value="">Departamento</option>
+                    <option value="" disabled selected>Departamento</option>
                   </select>
                   <select id="provincia" name="provincia" required disabled aria-label="Provincia">
-                    <option value="">Provincia</option>
+                    <option value="" disabled selected>Provincia</option>
                   </select>
                   <select id="distrito" name="distrito" required disabled aria-label="Distrito">
-                    <option value="">Distrito</option>
+                    <option value="" disabled selected>Distrito</option>
                   </select>
                 </div>
                 <div id="ubigeoStatus" class="ubigeo-status" role="status"></div>
@@ -151,43 +172,76 @@
             </div>
           </section>
 
-          <!-- 4. DATOS LABORALES Y FAMILIARES -->
-          <section class="section">
-            <h3 class="section-title"><span class="brick"></span>3. Datos laborales y familiares</h3>
+          <!-- SECCIÓN 3. INFORMACIÓN LABORAL -->
+          <section class="section" id="seccionLaboral">
+            <h3 class="section-title"><span class="brick"></span>Sección 3. Información laboral</h3>
             <div class="grid">
+              <!-- Fila 1 (2 columnas): Categoría laboral y Especialidad laboral -->
               <div class="field">
-                <label for="ruc_empresa">RUC Empresa donde labora o última empresa <span style="font-weight:500; color:var(--muted);">(opcional)</span></label>
-                <input id="ruc_empresa" name="ruc_empresa" type="text" inputmode="numeric" autocomplete="off" maxlength="11" pattern="[0-9]{11}" placeholder="11 dígitos numéricos (opcional)" />
-                <small class="hint">Si lo ingresas, debe tener exactamente 11 dígitos numéricos.</small>
-              </div>
-              <div class="field">
-                <label for="nombre_proyecto">Nombre de Proyecto <span style="font-weight:500; color:var(--muted);">(opcional)</span></label>
-                <input id="nombre_proyecto" name="nombre_proyecto" type="text" maxlength="150" placeholder="Ej. Residencial Las Torres / Obra Vial" />
-              </div>
-
-              <div class="field">
-                <label for="categoria">Categoría <span class="req">*</span></label>
-                <select id="categoria" name="categoria" required>
-                  <option value="">Selecciona una categoría</option>
+                <label for="categoria_laboral">Categoría laboral <span class="req">*</span></label>
+                <select id="categoria_laboral" name="categoria_laboral" required>
+                  <option value="" disabled selected>Selecciona</option>
                   <option value="Peón">Peón</option>
                   <option value="Oficial">Oficial</option>
                   <option value="Operario">Operario</option>
                 </select>
+                <input type="hidden" id="categoria" name="categoria" />
               </div>
               <div class="field">
-                <label for="especialidad">Especialidad <span style="font-weight:500; color:var(--muted);">(opcional)</span></label>
-                <input id="especialidad" name="especialidad" type="text" maxlength="120" placeholder="Ej. Fierrero, Encofrador, Albañil, etc." />
+                <label for="especialidad_laboral">Especialidad laboral <span class="req">*</span></label>
+                <input id="especialidad_laboral" name="especialidad_laboral" type="text" maxlength="120" required placeholder="Escribe o elige una sugerencia" />
+                <input type="hidden" id="especialidad" name="especialidad" />
               </div>
 
-              <!-- Hijos menores de edad (botonera compacta apilada + checkbox a la derecha) -->
+              <!-- Fila 2: ¿Actualmente trabajas en una obra de construcción civil? * (Pills Sí / No) -->
               <div class="field full">
-                <label for="hijos">N.º de hijos menores de edad <span class="req">*</span></label>
+                <label class="pills-question">¿Actualmente trabajas en una obra de construcción civil? <span class="req">*</span></label>
+                <div class="work-pills-group" role="radiogroup" aria-label="¿Actualmente trabajas en una obra de construcción civil?">
+                  <label class="work-pill active" id="pillSiLabel">
+                    <input type="radio" name="trabaja_en_obra" id="trabajaObraSi" value="Sí" checked />
+                    <span class="pill-btn">Sí</span>
+                  </label>
+                  <label class="work-pill" id="pillNoLabel">
+                    <input type="radio" name="trabaja_en_obra" id="trabajaObraNo" value="No" />
+                    <span class="pill-btn">No</span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Bloque Condicional (solo visible si selecciona "Sí") -->
+              <div class="conditional-block full" id="bloqueCondicionalObra">
+                <div class="grid">
+                  <div class="field">
+                    <label for="ruc_empleador" id="rucLabel">RUC del empleador <span class="req" id="rucReq">*</span></label>
+                    <input id="ruc_empleador" name="ruc_empleador" type="text" inputmode="numeric" autocomplete="off" maxlength="11" pattern="[0-9]{11}" placeholder="11 dígitos" />
+                    <input type="hidden" id="ruc_empresa" name="ruc_empresa" />
+                    <div class="no-ruc-check-row">
+                      <input id="no_conoce_ruc" name="no_conoce_ruc" type="checkbox" value="1" />
+                      <label for="no_conoce_ruc">No conozco el RUC de mi empleador</label>
+                    </div>
+                  </div>
+                  <div class="field">
+                    <label for="nombre_proyecto">Nombre del proyecto u obra <span class="req">*</span></label>
+                    <input id="nombre_proyecto" name="nombre_proyecto" type="text" maxlength="150" placeholder="Ej. Construcción del edificio Los Álamos" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SECCIÓN 4. INFORMACIÓN FAMILIAR Y AUTORIZACIÓN -->
+          <section class="section" id="seccionFamiliar">
+            <h3 class="section-title"><span class="brick"></span>Sección 4. Información familiar y autorización</h3>
+            <div class="grid">
+              <!-- Número de hijos menores de edad * -->
+              <div class="field full">
+                <label for="hijos">Número de hijos menores de edad <span class="req">*</span></label>
                 <div class="children-count-row">
                   <div class="children-count-control" aria-label="Control de número de hijos">
                     <input id="hijos" name="hijos_menores" type="number" inputmode="numeric" min="0" max="20" step="1" required value="1" aria-label="Número de hijos menores de edad" />
                     <div class="child-adjust-buttons">
                       <button id="agregarHijo" class="child-adjust add" type="button" aria-label="Añadir"><span class="symbol" aria-hidden="true">+</span> Añadir</button>
-                      <button id="quitarHijo" class="child-adjust remove" type="button" aria-label="Disminuir"><span class="symbol" aria-hidden="true">−</span> Disminuir</button>
+                      <button id="quitarHijo" class="child-adjust remove" type="button" aria-label="Quitar"><span class="symbol" aria-hidden="true">−</span> Quitar</button>
                     </div>
                   </div>
                   <div class="no-children-option">
@@ -195,11 +249,12 @@
                     <label for="sinHijos">No tengo hijos menores de edad</label>
                   </div>
                 </div>
-                <small class="hint">En caso tenga hijos/as, favor indique la cantidad.</small>
+                <small class="hint">En caso tenga hijos/as menores de edad, indique la cantidad.</small>
               </div>
 
+              <!-- Tarjetas dinámicas de hijos -->
               <div class="children-wrap">
-                <div class="section-title" style="font-size:16px; margin:4px 0 8px;"><span class="brick" style="height:22px;"></span>Datos de los hijos menores de edad</div>
+                <div class="children-section-subtitle">Datos de los hijos menores de edad</div>
                 <div id="childrenList" class="children-list" aria-live="polite">
                   <div class="children-empty">Indica el número de hijos menores de edad para registrar la edad y el sexo de cada uno.</div>
                 </div>
@@ -207,17 +262,17 @@
             </div>
           </section>
 
-          <!-- Casilla única obligatoria de autorización -->
-          <div class="consent" id="consentBlock">
+          <!-- Recuadro de Consentimiento Legal con borde gris claro -->
+          <div class="legal-consent-card" id="consentBlock">
             <div class="consent-head">
               <input class="consent-check" id="consentimientoDatos" name="consentimiento_datos_personales" type="checkbox" value="Sí" required />
-              <label class="consent-label" for="consentimientoDatos">AUTORIZO el tratamiento de mis datos personales por CONAFOVICER para las finalidades informadas en la autorización de tratamiento de datos personales. <span class="req">*</span></label>
+              <label class="consent-label" for="consentimientoDatos">Autorizo el tratamiento de mis datos personales para las finalidades informadas. <span class="req">*</span></label>
             </div>
             <div class="consent-actions">
-              <button class="consent-toggle" id="consentToggle" type="button" aria-expanded="false" aria-controls="consentDetail">Ver autorización completa</button>
+              <button class="consent-toggle-btn" id="consentToggle" type="button" aria-expanded="false" aria-controls="consentDetail">Leer autorización completa</button>
             </div>
             <div class="consent-detail" id="consentDetail" hidden>
-              <h4>Autorización</h4>
+              <h4>Autorización para el Tratamiento de Datos Personales</h4>
               <p><strong>AUTORIZO</strong> al Comité Nacional de Administración del Fondo para la Construcción de Viviendas y Centros Recreacionales para los Trabajadores en Construcción Civil del Perú - <strong>CONAFOVICER</strong>, con domicilio en Prolongación Cangallo N.° 670, tercer piso, La Victoria, Lima, a recopilar, registrar, organizar, almacenar, conservar, consultar, verificar, actualizar, analizar y utilizar mis datos personales de identificación, contacto, información laboral, aportaciones y uso de servicios, así como la información sobre edad y sexo de mis hijos menores declarada en este formulario, conforme a la Ley N.° 29733 y su Reglamento.</p>
               <h4>Finalidades y alcance de la autorización</h4>
               <ul>
@@ -243,9 +298,10 @@
             </div>
           </div>
 
+          <!-- Botón de envío y leyenda al pie -->
           <div class="actions">
-            <div class="privacy">Formulario preparado para uso institucional. La integración con una base de datos o servicio de recepción puede configurarse en el bloque JavaScript del archivo.</div>
             <button class="submit" id="submitBtn" type="submit">Actualizar datos y participar</button>
+            <div class="demo-legend">Modo demostración · Sin almacenamiento ni envío de datos personales. El consentimiento requiere revisión legal antes de producción.</div>
           </div>
         </form>
       </section>
