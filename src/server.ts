@@ -11,6 +11,8 @@ dotenv.config();
 export function createApp(): express.Application {
   const app = express();
 
+  app.set('trust proxy', 1);
+
   // Inicializar base de datos y esquema SQLite al arrancar
   getSqliteConnection();
 

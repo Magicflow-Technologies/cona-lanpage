@@ -32,10 +32,11 @@ class AdminController {
                 });
                 return;
             }
+            const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https';
             const token = auth_1.authService.generateToken(username);
             res.cookie('token', token, {
                 httpOnly: true,
-                secure: process.env.NODE_ENV === 'production', // false en desarrollo HTTP local
+                secure: Boolean(isHttps),
                 sameSite: 'lax',
                 path: '/',
                 maxAge: 24 * 60 * 60 * 1000 // 24 horas

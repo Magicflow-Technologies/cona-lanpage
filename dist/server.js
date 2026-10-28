@@ -14,6 +14,7 @@ const sqlite_1 = require("./infrastructure/database/sqlite");
 dotenv_1.default.config();
 function createApp() {
     const app = (0, express_1.default)();
+    app.set('trust proxy', 1);
     // Inicializar base de datos y esquema SQLite al arrancar
     (0, sqlite_1.getSqliteConnection)();
     // Cabeceras de Seguridad Web
