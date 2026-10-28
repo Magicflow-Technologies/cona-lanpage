@@ -135,13 +135,43 @@ class AdminPortalController {
     }, 4500);
   }
 
+  private readonly SESSION_KEY = 'cona_admin_active';
+
+  private updatePasswordToggleUi(btnId: string, isVisible: boolean): void {
+    const btn = document.getElementById(btnId);
+    if (!btn) return;
+    const eyeShow = btn.querySelector('.eye-show') as HTMLElement | null;
+    const eyeHide = btn.querySelector('.eye-hide') as HTMLElement | null;
+    if (eyeShow && eyeHide) {
+      eyeShow.style.display = isVisible ? 'none' : 'block';
+      eyeHide.style.display = isVisible ? 'block' : 'none';
+    }
+    const label = isVisible ? 'Ocultar contraseña' : 'Ver contraseña';
+    btn.setAttribute('aria-label', label);
+    btn.setAttribute('title', label);
+  }
+
   private async checkSession(): Promise<void> {
+    const hasActiveSession = sessionStorage.getItem(this.SESSION_KEY) === 'true';
+    if (!hasActiveSession) {
+      // Si el usuario ingresa a /admin en una pestaña nueva o tras salir, siempre pedir credenciales
+      try {
+        await fetch('/api/admin/logout', {
+          method: 'POST',
+          credentials: 'include'
+        });
+      } catch {}
+      this.showLogin();
+      return;
+    }
+
     try {
       const res = await fetch('/api/admin/session', {
         method: 'GET',
         credentials: 'include'
       });
       if (res.status === 401) {
+        sessionStorage.removeItem(this.SESSION_KEY);
         this.showLogin('Tu sesión expiró o no está activa. Por favor, inicia sesión.');
         return;
       }
@@ -149,9 +179,11 @@ class AdminPortalController {
       if (data.authenticated && data.user) {
         await this.showDashboard(data.user.username);
       } else {
+        sessionStorage.removeItem(this.SESSION_KEY);
         this.showLogin();
       }
     } catch {
+      sessionStorage.removeItem(this.SESSION_KEY);
       this.showLogin();
     }
   }
@@ -161,6 +193,9 @@ class AdminPortalController {
     this.closeRestoreModal();
     this.dashboardView.hidden = true;
     this.loginView.hidden = false;
+    this.passwordInput.value = '';
+    this.passwordInput.type = 'password';
+    this.updatePasswordToggleUi('toggleLoginPasswordBtn', false);
     if (errorMessage) {
       this.loginErrorBox.textContent = errorMessage;
       this.loginErrorBox.hidden = false;
@@ -216,6 +251,9 @@ class AdminPortalController {
         }
 
         this.passwordInput.value = '';
+        this.passwordInput.type = 'password';
+        this.updatePasswordToggleUi('toggleLoginPasswordBtn', false);
+        sessionStorage.setItem(this.SESSION_KEY, 'true');
         await this.showDashboard(data.user?.username || 'admin');
         if (!this.dashboardView.hidden) {
           this.notify('Bienvenido', 'Sesión administrativa iniciada con éxito.');
@@ -229,6 +267,7 @@ class AdminPortalController {
     });
 
     this.logoutBtn.addEventListener('click', async () => {
+      sessionStorage.removeItem(this.SESSION_KEY);
       await fetch('/api/admin/logout', {
         method: 'POST',
         credentials: 'include'
@@ -238,6 +277,35 @@ class AdminPortalController {
       this.notify('Sesión cerrada', 'Has salido del portal administrativo.');
       this.showLogin();
     });
+
+    const setupPasswordToggle = (btnId: string, inputEl: HTMLInputElement) => {
+      const btn = document.getElementById(btnId);
+      if (!btn) return;
+      btn.addEventListener('click', () => {
+        const isCurrentlyPassword = inputEl.type === 'password';
+        inputEl.type = isCurrentlyPassword ? 'text' : 'password';
+        this.updatePasswordToggleUi(btnId, isCurrentlyPassword);
+        inputEl.focus();
+      });
+    };
+
+    setupPasswordToggle('toggleLoginPasswordBtn', this.passwordInput);
+    setupPasswordToggle('toggleRestorePasswordBtn', this.restoreAdminPasswordInput);
+
+    const backLink = document.querySelector('.back-link') as HTMLAnchorElement | null;
+    if (backLink) {
+      backLink.addEventListener('click', async (e) => {
+        e.preventDefault();
+        sessionStorage.removeItem(this.SESSION_KEY);
+        try {
+          await fetch('/api/admin/logout', {
+            method: 'POST',
+            credentials: 'include'
+          });
+        } catch {}
+        window.location.href = '/';
+      });
+    }
 
     this.tabActivosBtn.addEventListener('click', () => this.switchTab('activos'));
     this.tabEliminadosBtn.addEventListener('click', () => this.switchTab('eliminados'));
@@ -351,6 +419,8 @@ class AdminPortalController {
     this.pendingRestoreId = null;
     this.restoreErrorBox.hidden = true;
     this.restoreAdminPasswordInput.value = '';
+    this.restoreAdminPasswordInput.type = 'password';
+    this.updatePasswordToggleUi('toggleRestorePasswordBtn', false);
     this.restoreModal.hidden = true;
   }
 

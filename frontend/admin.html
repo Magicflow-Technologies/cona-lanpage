@@ -129,6 +129,47 @@
       border-color: var(--cona-blue-2);
       box-shadow: 0 0 0 4px rgba(0,37,84,.08);
     }
+    .password-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+      width: 100%;
+    }
+    .password-wrapper input {
+      width: 100%;
+      padding-right: 46px;
+    }
+    .btn-toggle-password {
+      position: absolute;
+      right: 6px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: transparent;
+      border: 0;
+      padding: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #64748b;
+      border-radius: 8px;
+      transition: color .15s ease, background-color .15s ease;
+      line-height: 1;
+    }
+    .btn-toggle-password:hover {
+      color: var(--cona-blue);
+      background: rgba(0, 37, 84, 0.08);
+    }
+    .btn-toggle-password:focus-visible {
+      outline: 2px solid var(--cona-blue-2);
+      outline-offset: 1px;
+    }
+    .eye-icon {
+      width: 20px;
+      height: 20px;
+      display: block;
+      pointer-events: none;
+    }
     .error-banner {
       padding: 11px 13px;
       border-radius: 11px;
@@ -593,7 +634,19 @@
         </div>
         <div class="field">
           <label for="adminPassword">Contraseña</label>
-          <input id="adminPassword" name="password" type="password" autocomplete="current-password" required placeholder="••••••••••••" />
+          <div class="password-wrapper">
+            <input id="adminPassword" name="password" type="password" autocomplete="current-password" required placeholder="••••••••••••" />
+            <button type="button" class="btn-toggle-password" id="toggleLoginPasswordBtn" aria-label="Mostrar contraseña" title="Mostrar contraseña">
+              <svg class="eye-icon eye-show" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+              <svg class="eye-icon eye-hide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:none;">
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                <line x1="1" y1="1" x2="23" y2="23"></line>
+              </svg>
+            </button>
+          </div>
         </div>
         <button class="btn-primary" id="loginSubmitBtn" type="submit">Ingresar al Portal Admin</button>
       </form>
@@ -715,7 +768,19 @@
       <form id="restoreForm">
         <div class="field">
           <label for="restoreAdminPassword">Ingresa tu contraseña de administrador para autorizar el reingreso</label>
-          <input id="restoreAdminPassword" name="adminPassword" type="password" autocomplete="current-password" required placeholder="Ingresa tu contraseña de admin" />
+          <div class="password-wrapper">
+            <input id="restoreAdminPassword" name="adminPassword" type="password" autocomplete="current-password" required placeholder="Ingresa tu contraseña de admin" />
+            <button type="button" class="btn-toggle-password" id="toggleRestorePasswordBtn" aria-label="Mostrar contraseña" title="Mostrar contraseña">
+              <svg class="eye-icon eye-show" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+              <svg class="eye-icon eye-hide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:none;">
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                <line x1="1" y1="1" x2="23" y2="23"></line>
+              </svg>
+            </button>
+          </div>
         </div>
         <div class="modal-actions">
           <button type="button" class="btn-outline" id="cancelRestoreBtn">Cancelar</button>
@@ -730,6 +795,6 @@
     <span id="adminToastText"></span>
   </div>
 
-  <script type="module" src="dist/admin.js?v=20261027_02"></script>
+  <script type="module" src="dist/admin.js?v=20261028_03"></script>
 </body>
 </html>
