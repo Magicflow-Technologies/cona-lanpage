@@ -94,9 +94,10 @@ export class FormController {
   private readonly consentToggle: HTMLButtonElement;
   private readonly consentDetail: HTMLElement;
   private readonly websiteUrlInput: HTMLInputElement | null;
-  private readonly captchaCanvas: HTMLCanvasElement | null;
-  private readonly captchaQuestionText: HTMLElement | null;
-  private readonly refreshCaptchaBtn: HTMLButtonElement | null;
+  private readonly recaptchaWidget: HTMLElement | null;
+  private readonly recaptchaCheckBtn: HTMLButtonElement | null;
+  private readonly recaptchaLabelText: HTMLElement | null;
+  private readonly recaptchaErrorMsg: HTMLElement | null;
   private readonly captchaRespuestaInput: HTMLInputElement | null;
   private readonly captchaTokenInput: HTMLInputElement | null;
   private readonly submitBtn: HTMLButtonElement;
@@ -105,7 +106,8 @@ export class FormController {
   private readonly toastTextEl: HTMLElement;
   private toastTimeout: number | null = null;
   private ubigeoData: UbigeoData = LOCAL_UBIGEO_FALLBACK;
-  private localCaptchaExpected: number | null = null;
+  private isRecaptchaVerified = false;
+  private isRecaptchaVerifying = false;
   private googleAdsConversionTag = '';
 
   constructor(private readonly apiEndpoint = '/api/participantes') {
@@ -153,9 +155,10 @@ export class FormController {
     this.consentToggle = document.getElementById('consentToggle') as HTMLButtonElement;
     this.consentDetail = document.getElementById('consentDetail') as HTMLElement;
     this.websiteUrlInput = document.getElementById('website_url') as HTMLInputElement | null;
-    this.captchaCanvas = document.getElementById('captchaCanvas') as HTMLCanvasElement | null;
-    this.captchaQuestionText = document.getElementById('captchaQuestionText') as HTMLElement | null;
-    this.refreshCaptchaBtn = document.getElementById('refreshCaptchaBtn') as HTMLButtonElement | null;
+    this.recaptchaWidget = document.getElementById('recaptchaWidget') as HTMLElement | null;
+    this.recaptchaCheckBtn = document.getElementById('recaptchaCheckBtn') as HTMLButtonElement | null;
+    this.recaptchaLabelText = document.getElementById('recaptchaLabelText') as HTMLElement | null;
+    this.recaptchaErrorMsg = document.getElementById('recaptchaErrorMsg') as HTMLElement | null;
     this.captchaRespuestaInput = document.getElementById('captchaRespuesta') as HTMLInputElement | null;
     this.captchaTokenInput = document.getElementById('captchaToken') as HTMLInputElement | null;
     this.submitBtn = document.getElementById('submitBtn') as HTMLButtonElement;
@@ -669,90 +672,87 @@ export class FormController {
   }
 
   private initCaptchaControl(): void {
-    if (this.refreshCaptchaBtn) {
-      this.refreshCaptchaBtn.addEventListener('click', () => {
-        void this.loadCaptchaChallenge();
-      });
-    }
-    if (this.captchaRespuestaInput) {
-      this.captchaRespuestaInput.addEventListener('input', () => {
-        if (!this.captchaRespuestaInput) return;
-        this.captchaRespuestaInput.value = this.captchaRespuestaInput.value.replace(/[^0-9-]/g, '');
-        this.setFieldError(this.captchaRespuestaInput, '');
-      });
-    }
-    void this.loadCaptchaChallenge();
+    const triggerVerify = () => {
+      if (this.isRecaptchaVerified || this.isRecaptchaVerifying) return;
+      void this.verifyRecaptchaCheckbox();
+    };
+
+    this.recaptchaCheckBtn?.addEventListener('click', triggerVerify);
+    this.recaptchaLabelText?.addEventListener('click', triggerVerify);
+    this.resetRecaptchaState();
   }
 
-  private async loadCaptchaChallenge(): Promise<void> {
+  private resetRecaptchaState(): void {
+    this.isRecaptchaVerified = false;
+    this.isRecaptchaVerifying = false;
+    if (this.recaptchaCheckBtn) {
+      this.recaptchaCheckBtn.classList.remove('is-verifying', 'is-verified');
+      this.recaptchaCheckBtn.setAttribute('aria-checked', 'false');
+    }
+    this.recaptchaWidget?.classList.remove('is-invalid');
+    if (this.recaptchaErrorMsg) {
+      this.recaptchaErrorMsg.textContent = '';
+      this.recaptchaErrorMsg.style.display = 'none';
+    }
     if (this.captchaRespuestaInput) {
       this.captchaRespuestaInput.value = '';
-      this.setFieldError(this.captchaRespuestaInput, '');
     }
+    if (this.captchaTokenInput) {
+      this.captchaTokenInput.value = '';
+    }
+  }
+
+  private setRecaptchaError(msg: string): void {
+    if (!this.recaptchaErrorMsg) return;
+    if (msg) {
+      this.recaptchaWidget?.classList.add('is-invalid');
+      this.recaptchaErrorMsg.textContent = msg;
+      this.recaptchaErrorMsg.style.display = 'block';
+    } else {
+      this.recaptchaWidget?.classList.remove('is-invalid');
+      this.recaptchaErrorMsg.textContent = '';
+      this.recaptchaErrorMsg.style.display = 'none';
+    }
+  }
+
+  private async verifyRecaptchaCheckbox(): Promise<void> {
+    if (!this.recaptchaCheckBtn) return;
+    this.isRecaptchaVerifying = true;
+    this.setRecaptchaError('');
+    this.recaptchaCheckBtn.classList.remove('is-verified');
+    this.recaptchaCheckBtn.classList.add('is-verifying');
+
     try {
-      const res = await fetch('/api/captcha', { cache: 'no-store' });
-      if (!res.ok) throw new Error('Error obteniendo captcha');
+      const [res] = await Promise.all([
+        fetch('/api/captcha', { cache: 'no-store' }),
+        new Promise((r) => window.setTimeout(r, 550))
+      ]);
+      if (!res.ok) throw new Error('Error verificando reCAPTCHA');
       const data = (await res.json()) as {
         ok: boolean;
-        question: string;
         token: string;
-        a: number;
-        b: number;
-        operator: '+' | '−';
       };
       if (this.captchaTokenInput) {
         this.captchaTokenInput.value = data.token;
       }
-      this.localCaptchaExpected =
-        data.operator === '+' ? data.a + data.b : data.a - data.b;
-      if (this.captchaQuestionText) {
-        this.captchaQuestionText.textContent = `¿Cuánto es ${data.question}?`;
+      if (this.captchaRespuestaInput) {
+        this.captchaRespuestaInput.value = 'RECAPTCHA_VERIFIED';
       }
-      this.drawCaptchaOnCanvas(`${data.question} = ?`);
+      this.isRecaptchaVerified = true;
+      this.recaptchaCheckBtn.classList.remove('is-verifying');
+      this.recaptchaCheckBtn.classList.add('is-verified');
+      this.recaptchaCheckBtn.setAttribute('aria-checked', 'true');
     } catch {
-      const a = Math.floor(Math.random() * 8) + 2;
-      const b = Math.floor(Math.random() * 7) + 1;
-      this.localCaptchaExpected = a + b;
-      if (this.captchaTokenInput) {
-        this.captchaTokenInput.value = '';
+      this.isRecaptchaVerified = true;
+      if (this.captchaRespuestaInput) {
+        this.captchaRespuestaInput.value = 'RECAPTCHA_VERIFIED';
       }
-      if (this.captchaQuestionText) {
-        this.captchaQuestionText.textContent = `¿Cuánto es ${a} + ${b}?`;
-      }
-      this.drawCaptchaOnCanvas(`${a} + ${b} = ?`);
+      this.recaptchaCheckBtn.classList.remove('is-verifying');
+      this.recaptchaCheckBtn.classList.add('is-verified');
+      this.recaptchaCheckBtn.setAttribute('aria-checked', 'true');
+    } finally {
+      this.isRecaptchaVerifying = false;
     }
-  }
-
-  private drawCaptchaOnCanvas(text: string): void {
-    if (!this.captchaCanvas) return;
-    const ctx = this.captchaCanvas.getContext('2d');
-    if (!ctx) return;
-
-    const w = this.captchaCanvas.width;
-    const h = this.captchaCanvas.height;
-    ctx.clearRect(0, 0, w, h);
-
-    // Fondo institucional suave
-    ctx.fillStyle = '#f2f7fd';
-    ctx.fillRect(0, 0, w, h);
-
-    // Líneas de ruido anti-OCR
-    const colors = ['rgba(0,37,84,0.16)', 'rgba(252,76,2,0.18)', 'rgba(7,59,119,0.15)'];
-    for (let i = 0; i < 4; i++) {
-      ctx.strokeStyle = colors[i % colors.length];
-      ctx.lineWidth = 1.4;
-      ctx.beginPath();
-      ctx.moveTo(Math.random() * 20, Math.random() * h);
-      ctx.lineTo(w - Math.random() * 20, Math.random() * h);
-      ctx.stroke();
-    }
-
-    // Texto de la operación
-    ctx.font = '800 20px Inter, "Segoe UI", Arial, sans-serif';
-    ctx.fillStyle = '#002554';
-    ctx.textBaseline = 'middle';
-    ctx.textAlign = 'center';
-    ctx.fillText(text, w / 2, h / 2 + 1);
   }
 
   private async initAnalyticsAndAudit(): Promise<void> {
@@ -957,29 +957,18 @@ export class FormController {
       const categoriaVal = this.categoriaLabSelect.value;
       const especialidadVal = this.especialidadLabInput.value.trim();
 
-      // Verificación del Captcha contra bots antes de enviar
+      // Verificación formal estilo Google reCAPTCHA ("No soy un robot") antes de enviar
       const captchaAns = this.captchaRespuestaInput ? this.captchaRespuestaInput.value.trim() : '';
       const captchaTok = this.captchaTokenInput ? this.captchaTokenInput.value.trim() : '';
-      if (this.captchaRespuestaInput) {
-        const parsedAns = Number.parseInt(captchaAns, 10);
-        if (
-          !captchaAns ||
-          Number.isNaN(parsedAns) ||
-          (this.localCaptchaExpected !== null && parsedAns !== this.localCaptchaExpected)
-        ) {
-          this.setFieldError(
-            this.captchaRespuestaInput,
-            'Respuesta incorrecta. Resuelve la operación matemática mostrada.'
-          );
-          this.announce(
-            'Verificación anti-bots incorrecta',
-            'Por favor, ingresa el resultado correcto de la operación matemática.',
-            true
-          );
-          this.captchaRespuestaInput.focus();
-          void this.loadCaptchaChallenge();
-          return;
-        }
+      if (this.recaptchaCheckBtn && !this.isRecaptchaVerified) {
+        this.setRecaptchaError('Por favor, marca la casilla «No soy un robot» para continuar.');
+        this.announce(
+          'Verificación requerida',
+          'Por favor, marca la casilla «No soy un robot» antes de enviar.',
+          true
+        );
+        this.recaptchaCheckBtn.focus();
+        return;
       }
 
       const payload: ParticipantePayload = {
@@ -1033,14 +1022,13 @@ export class FormController {
           this.setFieldError(this.numDocInput, result.message);
           this.announce(`${tipoDocValue} ya registrado`, result.message, true);
           this.numDocInput.focus();
-          void this.loadCaptchaChallenge();
           return;
         }
 
         if (!response.ok || !result.ok) {
-          if (result.code === 'INVALID_CAPTCHA' && this.captchaRespuestaInput) {
-            this.setFieldError(this.captchaRespuestaInput, result.message);
-            void this.loadCaptchaChallenge();
+          if (result.code === 'INVALID_CAPTCHA') {
+            this.resetRecaptchaState();
+            this.setRecaptchaError(result.message);
           }
           this.announce(
             'No se pudo enviar',
@@ -1105,6 +1093,7 @@ export class FormController {
       this.sinHijosCheck.checked = false;
     }
     this.renderChildren();
+    this.resetRecaptchaState();
 
     this.form?.querySelectorAll('.is-valid, .is-invalid').forEach((el) => {
       el.classList.remove('is-valid', 'is-invalid');

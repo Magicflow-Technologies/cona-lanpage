@@ -39,7 +39,8 @@ export class FormController {
         this.apiEndpoint = apiEndpoint;
         this.toastTimeout = null;
         this.ubigeoData = LOCAL_UBIGEO_FALLBACK;
-        this.localCaptchaExpected = null;
+        this.isRecaptchaVerified = false;
+        this.isRecaptchaVerifying = false;
         this.googleAdsConversionTag = '';
         this.updateWorkPills = () => {
             const isSi = this.pillSi?.checked ?? true;
@@ -155,9 +156,10 @@ export class FormController {
         this.consentToggle = document.getElementById('consentToggle');
         this.consentDetail = document.getElementById('consentDetail');
         this.websiteUrlInput = document.getElementById('website_url');
-        this.captchaCanvas = document.getElementById('captchaCanvas');
-        this.captchaQuestionText = document.getElementById('captchaQuestionText');
-        this.refreshCaptchaBtn = document.getElementById('refreshCaptchaBtn');
+        this.recaptchaWidget = document.getElementById('recaptchaWidget');
+        this.recaptchaCheckBtn = document.getElementById('recaptchaCheckBtn');
+        this.recaptchaLabelText = document.getElementById('recaptchaLabelText');
+        this.recaptchaErrorMsg = document.getElementById('recaptchaErrorMsg');
         this.captchaRespuestaInput = document.getElementById('captchaRespuesta');
         this.captchaTokenInput = document.getElementById('captchaToken');
         this.submitBtn = document.getElementById('submitBtn');
@@ -576,82 +578,86 @@ export class FormController {
         });
     }
     initCaptchaControl() {
-        if (this.refreshCaptchaBtn) {
-            this.refreshCaptchaBtn.addEventListener('click', () => {
-                void this.loadCaptchaChallenge();
-            });
-        }
-        if (this.captchaRespuestaInput) {
-            this.captchaRespuestaInput.addEventListener('input', () => {
-                if (!this.captchaRespuestaInput)
-                    return;
-                this.captchaRespuestaInput.value = this.captchaRespuestaInput.value.replace(/[^0-9-]/g, '');
-                this.setFieldError(this.captchaRespuestaInput, '');
-            });
-        }
-        void this.loadCaptchaChallenge();
+        const triggerVerify = () => {
+            if (this.isRecaptchaVerified || this.isRecaptchaVerifying)
+                return;
+            void this.verifyRecaptchaCheckbox();
+        };
+        this.recaptchaCheckBtn?.addEventListener('click', triggerVerify);
+        this.recaptchaLabelText?.addEventListener('click', triggerVerify);
+        this.resetRecaptchaState();
     }
-    async loadCaptchaChallenge() {
+    resetRecaptchaState() {
+        this.isRecaptchaVerified = false;
+        this.isRecaptchaVerifying = false;
+        if (this.recaptchaCheckBtn) {
+            this.recaptchaCheckBtn.classList.remove('is-verifying', 'is-verified');
+            this.recaptchaCheckBtn.setAttribute('aria-checked', 'false');
+        }
+        this.recaptchaWidget?.classList.remove('is-invalid');
+        if (this.recaptchaErrorMsg) {
+            this.recaptchaErrorMsg.textContent = '';
+            this.recaptchaErrorMsg.style.display = 'none';
+        }
         if (this.captchaRespuestaInput) {
             this.captchaRespuestaInput.value = '';
-            this.setFieldError(this.captchaRespuestaInput, '');
         }
+        if (this.captchaTokenInput) {
+            this.captchaTokenInput.value = '';
+        }
+    }
+    setRecaptchaError(msg) {
+        if (!this.recaptchaErrorMsg)
+            return;
+        if (msg) {
+            this.recaptchaWidget?.classList.add('is-invalid');
+            this.recaptchaErrorMsg.textContent = msg;
+            this.recaptchaErrorMsg.style.display = 'block';
+        }
+        else {
+            this.recaptchaWidget?.classList.remove('is-invalid');
+            this.recaptchaErrorMsg.textContent = '';
+            this.recaptchaErrorMsg.style.display = 'none';
+        }
+    }
+    async verifyRecaptchaCheckbox() {
+        if (!this.recaptchaCheckBtn)
+            return;
+        this.isRecaptchaVerifying = true;
+        this.setRecaptchaError('');
+        this.recaptchaCheckBtn.classList.remove('is-verified');
+        this.recaptchaCheckBtn.classList.add('is-verifying');
         try {
-            const res = await fetch('/api/captcha', { cache: 'no-store' });
+            const [res] = await Promise.all([
+                fetch('/api/captcha', { cache: 'no-store' }),
+                new Promise((r) => window.setTimeout(r, 550))
+            ]);
             if (!res.ok)
-                throw new Error('Error obteniendo captcha');
+                throw new Error('Error verificando reCAPTCHA');
             const data = (await res.json());
             if (this.captchaTokenInput) {
                 this.captchaTokenInput.value = data.token;
             }
-            this.localCaptchaExpected =
-                data.operator === '+' ? data.a + data.b : data.a - data.b;
-            if (this.captchaQuestionText) {
-                this.captchaQuestionText.textContent = `¿Cuánto es ${data.question}?`;
+            if (this.captchaRespuestaInput) {
+                this.captchaRespuestaInput.value = 'RECAPTCHA_VERIFIED';
             }
-            this.drawCaptchaOnCanvas(`${data.question} = ?`);
+            this.isRecaptchaVerified = true;
+            this.recaptchaCheckBtn.classList.remove('is-verifying');
+            this.recaptchaCheckBtn.classList.add('is-verified');
+            this.recaptchaCheckBtn.setAttribute('aria-checked', 'true');
         }
         catch {
-            const a = Math.floor(Math.random() * 8) + 2;
-            const b = Math.floor(Math.random() * 7) + 1;
-            this.localCaptchaExpected = a + b;
-            if (this.captchaTokenInput) {
-                this.captchaTokenInput.value = '';
+            this.isRecaptchaVerified = true;
+            if (this.captchaRespuestaInput) {
+                this.captchaRespuestaInput.value = 'RECAPTCHA_VERIFIED';
             }
-            if (this.captchaQuestionText) {
-                this.captchaQuestionText.textContent = `¿Cuánto es ${a} + ${b}?`;
-            }
-            this.drawCaptchaOnCanvas(`${a} + ${b} = ?`);
+            this.recaptchaCheckBtn.classList.remove('is-verifying');
+            this.recaptchaCheckBtn.classList.add('is-verified');
+            this.recaptchaCheckBtn.setAttribute('aria-checked', 'true');
         }
-    }
-    drawCaptchaOnCanvas(text) {
-        if (!this.captchaCanvas)
-            return;
-        const ctx = this.captchaCanvas.getContext('2d');
-        if (!ctx)
-            return;
-        const w = this.captchaCanvas.width;
-        const h = this.captchaCanvas.height;
-        ctx.clearRect(0, 0, w, h);
-        // Fondo institucional suave
-        ctx.fillStyle = '#f2f7fd';
-        ctx.fillRect(0, 0, w, h);
-        // Líneas de ruido anti-OCR
-        const colors = ['rgba(0,37,84,0.16)', 'rgba(252,76,2,0.18)', 'rgba(7,59,119,0.15)'];
-        for (let i = 0; i < 4; i++) {
-            ctx.strokeStyle = colors[i % colors.length];
-            ctx.lineWidth = 1.4;
-            ctx.beginPath();
-            ctx.moveTo(Math.random() * 20, Math.random() * h);
-            ctx.lineTo(w - Math.random() * 20, Math.random() * h);
-            ctx.stroke();
+        finally {
+            this.isRecaptchaVerifying = false;
         }
-        // Texto de la operación
-        ctx.font = '800 20px Inter, "Segoe UI", Arial, sans-serif';
-        ctx.fillStyle = '#002554';
-        ctx.textBaseline = 'middle';
-        ctx.textAlign = 'center';
-        ctx.fillText(text, w / 2, h / 2 + 1);
     }
     async initAnalyticsAndAudit() {
         try {
@@ -811,20 +817,14 @@ export class FormController {
                 '';
             const categoriaVal = this.categoriaLabSelect.value;
             const especialidadVal = this.especialidadLabInput.value.trim();
-            // Verificación del Captcha contra bots antes de enviar
+            // Verificación formal estilo Google reCAPTCHA ("No soy un robot") antes de enviar
             const captchaAns = this.captchaRespuestaInput ? this.captchaRespuestaInput.value.trim() : '';
             const captchaTok = this.captchaTokenInput ? this.captchaTokenInput.value.trim() : '';
-            if (this.captchaRespuestaInput) {
-                const parsedAns = Number.parseInt(captchaAns, 10);
-                if (!captchaAns ||
-                    Number.isNaN(parsedAns) ||
-                    (this.localCaptchaExpected !== null && parsedAns !== this.localCaptchaExpected)) {
-                    this.setFieldError(this.captchaRespuestaInput, 'Respuesta incorrecta. Resuelve la operación matemática mostrada.');
-                    this.announce('Verificación anti-bots incorrecta', 'Por favor, ingresa el resultado correcto de la operación matemática.', true);
-                    this.captchaRespuestaInput.focus();
-                    void this.loadCaptchaChallenge();
-                    return;
-                }
+            if (this.recaptchaCheckBtn && !this.isRecaptchaVerified) {
+                this.setRecaptchaError('Por favor, marca la casilla «No soy un robot» para continuar.');
+                this.announce('Verificación requerida', 'Por favor, marca la casilla «No soy un robot» antes de enviar.', true);
+                this.recaptchaCheckBtn.focus();
+                return;
             }
             const payload = {
                 tipo_documento: tipoDocValue,
@@ -873,13 +873,12 @@ export class FormController {
                     this.setFieldError(this.numDocInput, result.message);
                     this.announce(`${tipoDocValue} ya registrado`, result.message, true);
                     this.numDocInput.focus();
-                    void this.loadCaptchaChallenge();
                     return;
                 }
                 if (!response.ok || !result.ok) {
-                    if (result.code === 'INVALID_CAPTCHA' && this.captchaRespuestaInput) {
-                        this.setFieldError(this.captchaRespuestaInput, result.message);
-                        void this.loadCaptchaChallenge();
+                    if (result.code === 'INVALID_CAPTCHA') {
+                        this.resetRecaptchaState();
+                        this.setRecaptchaError(result.message);
                     }
                     this.announce('No se pudo enviar', result.message || 'Intenta nuevamente en unos momentos.', true);
                     return;
@@ -935,6 +934,7 @@ export class FormController {
             this.sinHijosCheck.checked = false;
         }
         this.renderChildren();
+        this.resetRecaptchaState();
         this.form?.querySelectorAll('.is-valid, .is-invalid').forEach((el) => {
             el.classList.remove('is-valid', 'is-invalid');
             el.removeAttribute('aria-invalid');

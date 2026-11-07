@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Campaña de actualización de datos | CONA</title>
   <meta name="description" content="Campaña de actualización de datos - CONA. Tu información nos importa." />
-  <link rel="stylesheet" href="styles.css?v=20261107_01" />
+  <link rel="stylesheet" href="styles.css?v=20261107_02" />
 </head>
 <body>
   <div class="ambient" aria-hidden="true" id="ambient"></div>
@@ -304,36 +304,39 @@
             <input type="text" id="website_url" name="website_url" tabindex="-1" autocomplete="off" />
           </div>
 
-          <!-- Verificación de seguridad contra bots (Captcha) -->
-          <div class="captcha-card" id="captchaBox">
-            <div class="captcha-header">
-              <span class="captcha-shield" aria-hidden="true">🛡️</span>
-              <div>
-                <label class="captcha-title" for="captchaRespuesta">Verificación de seguridad contra bots <span class="req">*</span></label>
-                <small class="captcha-subtitle">Resuelve la operación matemática para confirmar que eres una persona.</small>
+          <!-- Verificación de seguridad contra bots (Estilo formal Google reCAPTCHA "No soy un robot") -->
+          <div class="recaptcha-section" id="captchaBox">
+            <div class="g-recaptcha-widget" id="recaptchaWidget">
+              <div class="g-recaptcha-left">
+                <button
+                  type="button"
+                  class="g-recaptcha-checkbox"
+                  id="recaptchaCheckBtn"
+                  role="checkbox"
+                  aria-checked="false"
+                  aria-labelledby="recaptchaLabelText"
+                >
+                  <span class="g-recaptcha-border"></span>
+                  <span class="g-recaptcha-spinner" aria-hidden="true"></span>
+                  <svg class="g-recaptcha-checkmark" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M4.5 12.5L9.5 17.5L19.5 6.5" stroke="#009e5a" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </button>
+                <span class="g-recaptcha-label" id="recaptchaLabelText">No soy un robot</span>
+              </div>
+              <div class="g-recaptcha-right" aria-hidden="true">
+                <svg class="g-recaptcha-logo" viewBox="0 0 64 64" fill="none">
+                  <path d="M32 10C21.5 10 13 17.4 11.3 27.3L6 22V36H20L14.9 30.9C16.4 22.4 23.5 16 32 16C39.2 16 45.4 20.4 48 26.7L53.6 24.4C50.1 15.9 41.7 10 32 10Z" fill="#1c3aa9" />
+                  <path d="M52.7 36.7C51.2 45.2 44.1 51.6 35.6 51.6C28.4 51.6 22.2 47.2 19.6 40.9L14 43.2C17.5 51.7 25.9 57.6 35.6 57.6C46.1 57.6 54.6 50.2 56.3 40.3L61.6 45.6V31.6H47.6L52.7 36.7Z" fill="#4285f4" />
+                  <path d="M19.6 40.9C18.3 37.8 18.1 34.3 18.9 30.9L13.1 29.4C11.9 34.4 12.3 39.7 14.3 44.5L19.6 40.9Z" fill="#ababab" />
+                </svg>
+                <div class="g-recaptcha-brand">reCAPTCHA</div>
+                <div class="g-recaptcha-links">Privacidad - Condiciones</div>
               </div>
             </div>
-            <div class="captcha-controls">
-              <div class="captcha-badge-wrap">
-                <canvas id="captchaCanvas" width="140" height="46" aria-hidden="true"></canvas>
-                <span class="sr-only" id="captchaQuestionText">Cargando operación...</span>
-                <button type="button" class="captcha-refresh-btn" id="refreshCaptchaBtn" title="Generar otra operación" aria-label="Generar otra operación matemática">↻</button>
-              </div>
-              <div class="captcha-input-wrap field">
-                <input
-                  id="captchaRespuesta"
-                  name="captcha_answer"
-                  type="text"
-                  inputmode="numeric"
-                  autocomplete="off"
-                  maxlength="4"
-                  required
-                  placeholder="Resultado"
-                  aria-label="Resultado de la operación de seguridad"
-                />
-                <input type="hidden" id="captchaToken" name="captcha_token" />
-              </div>
-            </div>
+            <input type="hidden" id="captchaRespuesta" name="captcha_answer" value="" />
+            <input type="hidden" id="captchaToken" name="captcha_token" value="" />
+            <small class="field-error-msg" id="recaptchaErrorMsg" role="alert"></small>
           </div>
 
           <!-- Botón de envío -->
@@ -352,6 +355,6 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"><strong id="toastTitle"></strong><span id="toastText"></span></div>
 
-  <script type="module" src="dist/main.js?v=20261107_01"></script>
+  <script type="module" src="dist/main.js?v=20261107_02"></script>
 </body>
 </html>
