@@ -662,6 +662,12 @@
       </div>
       <div class="user-controls">
         <span class="user-badge" id="adminUserBadge">Usuario: admin</span>
+        <button class="btn-outline" id="openAuditModalBtn" type="button">
+          <span>🛡️ Auditoría y Accesos</span>
+        </button>
+        <button class="btn-outline" id="backupDbBtn" type="button">
+          <span>💾 Respaldo BD (.db)</span>
+        </button>
         <button class="btn-excel" id="exportExcelBtn" type="button">
           <span>⬇ Exportar a Excel (.xlsx)</span>
         </button>
@@ -790,11 +796,57 @@
     </div>
   </div>
 
+  <!-- MODAL DE AUDITORÍA, TRAZABILIDAD DE ACCESOS Y ANALYTICS -->
+  <div class="modal-backdrop" id="auditModal" role="dialog" aria-modal="true" aria-labelledby="auditModalTitle" hidden>
+    <div class="modal-dialog" style="max-width: 780px; max-height: 86vh; overflow-y: auto;">
+      <h2 id="auditModalTitle">🛡️ Bitácora de Auditoría, Trazabilidad y Estadísticas de Acceso</h2>
+      <p>Registro automático de ingresos a la Landing Page, registros de participantes, inicios de sesión administrativos y respaldos de seguridad. Compatible con Google Analytics 4 y Google Ads (configurables en <code>.env</code>).</p>
+      <div class="stats-grid" style="grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 16px;">
+        <div class="stat-card" style="padding: 12px 14px;">
+          <div class="stat-label">Visitas Landing</div>
+          <div class="stat-value" id="auditVisitas" style="font-size: 22px;">0</div>
+        </div>
+        <div class="stat-card green" style="padding: 12px 14px;">
+          <div class="stat-label">Registros Exitosos</div>
+          <div class="stat-value" id="auditRegistros" style="font-size: 22px;">0</div>
+        </div>
+        <div class="stat-card" style="padding: 12px 14px;">
+          <div class="stat-label">Logins Admin OK</div>
+          <div class="stat-value" id="auditLoginsOk" style="font-size: 22px;">0</div>
+        </div>
+        <div class="stat-card accent" style="padding: 12px 14px;">
+          <div class="stat-label">Respaldos / Excel</div>
+          <div class="stat-value" id="auditRespaldos" style="font-size: 22px;">0</div>
+        </div>
+      </div>
+      <div class="table-responsive" style="max-height: 320px; overflow-y: auto; border: 1px solid var(--border); border-radius: 12px;">
+        <table style="min-width: 640px; font-size: 12.5px;">
+          <thead>
+            <tr>
+              <th>Fecha / Hora</th>
+              <th>Evento</th>
+              <th>IP Origen</th>
+              <th>Detalle</th>
+            </tr>
+          </thead>
+          <tbody id="auditTableBody">
+            <tr>
+              <td colspan="4" class="empty-cell">Cargando bitácora de auditoría…</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-outline" id="closeAuditModalBtn">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
   <div class="toast" id="adminToast" role="status" aria-live="polite">
     <strong id="adminToastTitle"></strong>
     <span id="adminToastText"></span>
   </div>
 
-  <script type="module" src="dist/admin.js?v=20261028_03"></script>
+  <script type="module" src="dist/admin.js?v=20261107_01"></script>
 </body>
 </html>

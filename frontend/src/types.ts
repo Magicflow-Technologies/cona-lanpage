@@ -42,6 +42,9 @@ export interface ParticipantePayload {
   consentimiento_datos_personales: boolean;
   version_consentimiento?: string;
   fecha_registro?: string;
+  website_url?: string;
+  captcha_token?: string;
+  captcha_answer?: string;
 }
 
 export interface ApiResponse<T = unknown> {

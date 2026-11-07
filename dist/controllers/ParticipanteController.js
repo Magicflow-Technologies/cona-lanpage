@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ParticipanteController = void 0;
 const sanitizer_1 = require("../infrastructure/security/sanitizer");
 const AppError_1 = require("../core/errors/AppError");
+const securityMiddleware_1 = require("../infrastructure/security/securityMiddleware");
 /**
  * Controlador de Participantes.
  * Depende exclusivamente de la abstracción `IParticipanteRepository` (Inyección de Dependencias).
@@ -13,20 +14,75 @@ class ParticipanteController {
         this.repository = repository;
     }
     /**
+     * GET /api/captcha
+     * Genera un nuevo reto anti-bots (Captcha matemático firmado con HMAC).
+     */
+    obtenerCaptcha = (_req, res) => {
+        const challenge = (0, securityMiddleware_1.generateCaptchaChallenge)();
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+        res.status(200).json({
+            ok: true,
+            question: challenge.question,
+            token: challenge.token,
+            a: challenge.a,
+            b: challenge.b,
+            operator: challenge.operator
+        });
+    };
+    /**
+     * GET /api/config/public
+     * Devuelve configuración pública de analítica (Google Analytics 4 / Google Ads)
+     * y registra la trazabilidad de visita a la Landing Page.
+     */
+    obtenerConfigPublica = (req, res) => {
+        (0, securityMiddleware_1.logAuditEvent)(req, 'VISITA_LANDING', 'Ingreso a formulario de campaña CONA');
+        res.status(200).json({
+            ok: true,
+            gaMeasurementId: (process.env.GA_MEASUREMENT_ID || '').trim(),
+            googleAdsId: (process.env.GOOGLE_ADS_ID || '').trim(),
+            googleAdsConversionLabel: (process.env.GOOGLE_ADS_CONVERSION_LABEL || '').trim()
+        });
+    };
+    /**
      * POST /api/participantes
-     * Registra un nuevo participante validando formato, sanitizando contra XSS
-     * y verificando unicidad de documento en `cona_campana.db` (HTTP 409 si ya está activo,
-     * o reactivación automática si se encontraba eliminado en papelera).
+     * Registra un nuevo participante validando Honeypot, Captcha anti-bots, formato,
+     * sanitizando contra XSS/SQLi y verificando unicidad de documento en `cona_campana.db`.
      */
     registrar = async (req, res) => {
         try {
-            const dto = (0, sanitizer_1.validateAndSanitizeParticipanteDTO)(req.body || {});
+            const body = req.body || {};
+            // 1. Verificación Anti-Bots: Campo trampa Honeypot (invisible para humanos)
+            if (body.website_url && String(body.website_url).trim() !== '') {
+                (0, securityMiddleware_1.logAuditEvent)(req, 'BOT_HONEYPOT_BLOCK', 'Campo honeypot completado por bot');
+                res.status(400).json({
+                    ok: false,
+                    code: 'BOT_DETECTED',
+                    message: 'Solicitud bloqueada por el filtro de seguridad anti-bots.'
+                });
+                return;
+            }
+            // 2. Verificación Anti-Bots: Captcha firmado (si el cliente envía captcha_token o require_captcha)
+            if (body.captcha_token !== undefined || body.captcha_answer !== undefined) {
+                const isCaptchaValid = (0, securityMiddleware_1.verifyCaptchaChallenge)(String(body.captcha_token || ''), String(body.captcha_answer || ''));
+                if (!isCaptchaValid) {
+                    (0, securityMiddleware_1.logAuditEvent)(req, 'CAPTCHA_FAIL', 'Respuesta de verificación anti-bots incorrecta');
+                    res.status(400).json({
+                        ok: false,
+                        code: 'INVALID_CAPTCHA',
+                        message: 'La verificación de seguridad contra bots (Captcha) es incorrecta o expiró. Inténtalo de nuevo.'
+                    });
+                    return;
+                }
+            }
+            const dto = (0, sanitizer_1.validateAndSanitizeParticipanteDTO)(body);
             // Verificación explícita anti-duplicados por tipo y número de documento
             const existente = await this.repository.buscarPorDocumento(dto.tipo_documento, dto.numero_documento);
             if (existente && existente.activo) {
+                (0, securityMiddleware_1.logAuditEvent)(req, 'REGISTRO_DUPLICADO', `Intento duplicado: ${dto.tipo_documento} ${dto.numero_documento}`);
                 throw new AppError_1.DuplicateDocumentError(dto.numero_documento, dto.tipo_documento);
             }
             const creado = await this.repository.crear(dto);
+            (0, securityMiddleware_1.logAuditEvent)(req, 'REGISTRO_EXITOSO', `Participante registrado ID #${creado.id} (${creado.tipo_documento} ${creado.numero_documento})`);
             res.status(201).json({
                 ok: true,
                 code: 'PARTICIPANTE_REGISTRADO',

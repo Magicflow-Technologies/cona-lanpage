@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Campaña de actualización de datos | CONA</title>
   <meta name="description" content="Campaña de actualización de datos - CONA. Tu información nos importa." />
-  <link rel="stylesheet" href="styles.css?v=20261027_01" />
+  <link rel="stylesheet" href="styles.css?v=20261107_01" />
 </head>
 <body>
   <div class="ambient" aria-hidden="true" id="ambient"></div>
@@ -189,7 +189,7 @@
               </div>
               <div class="field">
                 <label for="especialidad_laboral">Especialidad laboral <span class="req">*</span></label>
-                <input id="especialidad_laboral" name="especialidad_laboral" type="text" maxlength="120" required placeholder="Escribe o elige una sugerencia" />
+                <input id="especialidad_laboral" name="especialidad_laboral" type="text" maxlength="120" required placeholder="Ej.: albañilería, encofrado o instalaciones eléctricas" />
                 <input type="hidden" id="especialidad" name="especialidad" />
               </div>
 
@@ -298,10 +298,47 @@
             </div>
           </div>
 
-          <!-- Botón de envío y leyenda al pie -->
+          <!-- Campo trampa Honeypot anti-bots (invisible para usuarios reales) -->
+          <div class="hp-trap" aria-hidden="true">
+            <label for="website_url">No completar este campo</label>
+            <input type="text" id="website_url" name="website_url" tabindex="-1" autocomplete="off" />
+          </div>
+
+          <!-- Verificación de seguridad contra bots (Captcha) -->
+          <div class="captcha-card" id="captchaBox">
+            <div class="captcha-header">
+              <span class="captcha-shield" aria-hidden="true">🛡️</span>
+              <div>
+                <label class="captcha-title" for="captchaRespuesta">Verificación de seguridad contra bots <span class="req">*</span></label>
+                <small class="captcha-subtitle">Resuelve la operación matemática para confirmar que eres una persona.</small>
+              </div>
+            </div>
+            <div class="captcha-controls">
+              <div class="captcha-badge-wrap">
+                <canvas id="captchaCanvas" width="140" height="46" aria-hidden="true"></canvas>
+                <span class="sr-only" id="captchaQuestionText">Cargando operación...</span>
+                <button type="button" class="captcha-refresh-btn" id="refreshCaptchaBtn" title="Generar otra operación" aria-label="Generar otra operación matemática">↻</button>
+              </div>
+              <div class="captcha-input-wrap field">
+                <input
+                  id="captchaRespuesta"
+                  name="captcha_answer"
+                  type="text"
+                  inputmode="numeric"
+                  autocomplete="off"
+                  maxlength="4"
+                  required
+                  placeholder="Resultado"
+                  aria-label="Resultado de la operación de seguridad"
+                />
+                <input type="hidden" id="captchaToken" name="captcha_token" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Botón de envío -->
           <div class="actions">
             <button class="submit" id="submitBtn" type="submit">Actualizar datos y participar</button>
-            <div class="demo-legend">Modo demostración · Sin almacenamiento ni envío de datos personales. El consentimiento requiere revisión legal antes de producción.</div>
           </div>
         </form>
       </section>
@@ -315,6 +352,6 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"><strong id="toastTitle"></strong><span id="toastText"></span></div>
 
-  <script type="module" src="dist/main.js?v=20261027_01"></script>
+  <script type="module" src="dist/main.js?v=20261107_01"></script>
 </body>
 </html>

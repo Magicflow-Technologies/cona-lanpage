@@ -1,8 +1,14 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AdminController = void 0;
+const fs_1 = __importDefault(require("fs"));
 const auth_1 = require("../infrastructure/security/auth");
 const ExcelExporter_1 = require("../infrastructure/excel/ExcelExporter");
+const sqlite_1 = require("../infrastructure/database/sqlite");
+const securityMiddleware_1 = require("../infrastructure/security/securityMiddleware");
 class AdminController {
     repository;
     constructor(repository) {
@@ -25,6 +31,7 @@ class AdminController {
             }
             const isValid = await auth_1.authService.verifyCredentials(username, password);
             if (!isValid) {
+                (0, securityMiddleware_1.logAuditEvent)(req, 'ADMIN_LOGIN_FAIL', `Intento fallido usuario: ${username}`);
                 res.status(401).json({
                     ok: false,
                     code: 'INVALID_CREDENTIALS',
@@ -32,6 +39,7 @@ class AdminController {
                 });
                 return;
             }
+            (0, securityMiddleware_1.logAuditEvent)(req, 'ADMIN_LOGIN_OK', `Inicio de sesión exitoso: ${username}`);
             const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https';
             const token = auth_1.authService.generateToken(username);
             res.cookie('token', token, {
@@ -213,6 +221,7 @@ class AdminController {
                 });
                 return;
             }
+            (0, securityMiddleware_1.logAuditEvent)(req, 'ADMIN_SOFT_DELETE', `Participante ID #${id} enviado a papelera`);
             res.status(200).json({
                 ok: true,
                 message: 'Registro enviado a papelera.'
@@ -246,6 +255,7 @@ class AdminController {
             const adminPassword = String(req.body?.adminPassword || '');
             const isPasswordValid = await auth_1.authService.verifyAdminPassword(adminPassword);
             if (!isPasswordValid) {
+                (0, securityMiddleware_1.logAuditEvent)(req, 'ADMIN_RESTORE_FAIL', `Clave maestra incorrecta al restaurar ID #${id}`);
                 res.status(403).json({
                     ok: false,
                     error: 'Contraseña incorrecta para autorizar la restauración.',
@@ -262,6 +272,7 @@ class AdminController {
                 });
                 return;
             }
+            (0, securityMiddleware_1.logAuditEvent)(req, 'ADMIN_RESTORE_OK', `Participante ID #${id} restaurado al padrón activo`);
             res.status(200).json({
                 ok: true,
                 message: 'Registro restaurado exitosamente en el padrón activo.'
@@ -292,6 +303,7 @@ class AdminController {
             const buffer = await ExcelExporter_1.ExcelExporter.buildParticipantesWorkbook(registrosExportar);
             const stamp = new Date().toISOString().slice(0, 10);
             const filename = `CONA_Participantes_Sorteo_${stamp}.xlsx`;
+            (0, securityMiddleware_1.logAuditEvent)(req, 'ADMIN_EXPORT_EXCEL', `Exportación Excel (${registrosExportar.length} registros)`);
             res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
             res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
             res.status(200).send(Buffer.from(buffer));
@@ -302,6 +314,51 @@ class AdminController {
                 ok: false,
                 code: 'EXCEL_EXPORT_ERROR',
                 message: 'Error al generar el archivo Excel.'
+            });
+        }
+    };
+    /**
+     * GET /api/admin/backup-db
+     * Genera una copia de seguridad íntegra de `cona_campana.db` y la descarga (Punto 4.b).
+     */
+    descargarBackupDb = (req, res) => {
+        try {
+            const backupFilePath = (0, sqlite_1.createDatabaseBackup)();
+            const stamp = new Date().toISOString().slice(0, 10);
+            const downloadFilename = `CONA_Respaldo_BD_${stamp}.db`;
+            (0, securityMiddleware_1.logAuditEvent)(req, 'ADMIN_BACKUP_DB', `Respaldo de base de datos generado: ${downloadFilename}`);
+            const fileBuffer = fs_1.default.readFileSync(backupFilePath);
+            res.setHeader('Content-Type', 'application/octet-stream');
+            res.setHeader('Content-Disposition', `attachment; filename="${downloadFilename}"`);
+            res.status(200).send(fileBuffer);
+        }
+        catch (error) {
+            console.error('[AdminController.descargarBackupDb] Error:', error);
+            res.status(500).json({
+                ok: false,
+                code: 'DB_BACKUP_ERROR',
+                message: 'Error al generar el respaldo de la base de datos.'
+            });
+        }
+    };
+    /**
+     * GET /api/admin/auditoria
+     * Retorna estadísticas de ingreso, trazabilidad de accesos y bitácora de auditoría (Punto 4.a).
+     */
+    obtenerAuditoria = (_req, res) => {
+        try {
+            const summary = (0, securityMiddleware_1.getAuditSummary)(50);
+            res.status(200).json({
+                ok: true,
+                ...summary
+            });
+        }
+        catch (error) {
+            console.error('[AdminController.obtenerAuditoria] Error:', error);
+            res.status(500).json({
+                ok: false,
+                code: 'AUDIT_ERROR',
+                message: 'No se pudo obtener la bitácora de auditoría.'
             });
         }
     };

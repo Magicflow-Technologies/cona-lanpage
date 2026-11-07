@@ -39,6 +39,8 @@ export class FormController {
         this.apiEndpoint = apiEndpoint;
         this.toastTimeout = null;
         this.ubigeoData = LOCAL_UBIGEO_FALLBACK;
+        this.localCaptchaExpected = null;
+        this.googleAdsConversionTag = '';
         this.updateWorkPills = () => {
             const isSi = this.pillSi?.checked ?? true;
             if (isSi) {
@@ -152,6 +154,12 @@ export class FormController {
         this.consentimientoDatosCheck = document.getElementById('consentimientoDatos');
         this.consentToggle = document.getElementById('consentToggle');
         this.consentDetail = document.getElementById('consentDetail');
+        this.websiteUrlInput = document.getElementById('website_url');
+        this.captchaCanvas = document.getElementById('captchaCanvas');
+        this.captchaQuestionText = document.getElementById('captchaQuestionText');
+        this.refreshCaptchaBtn = document.getElementById('refreshCaptchaBtn');
+        this.captchaRespuestaInput = document.getElementById('captchaRespuesta');
+        this.captchaTokenInput = document.getElementById('captchaToken');
         this.submitBtn = document.getElementById('submitBtn');
         this.toastEl = document.getElementById('toast');
         this.toastTitleEl = document.getElementById('toastTitle');
@@ -163,6 +171,8 @@ export class FormController {
         this.initConsentAccordion();
         this.initChildrenControls();
         this.initUbigeoCatalog();
+        this.initCaptchaControl();
+        this.initAnalyticsAndAudit();
         this.bindSubmit();
     }
     announce(title, message, isError = false) {
@@ -565,6 +575,137 @@ export class FormController {
             this.ubigeoInput.value = item ? item.ubigeo : '';
         });
     }
+    initCaptchaControl() {
+        if (this.refreshCaptchaBtn) {
+            this.refreshCaptchaBtn.addEventListener('click', () => {
+                void this.loadCaptchaChallenge();
+            });
+        }
+        if (this.captchaRespuestaInput) {
+            this.captchaRespuestaInput.addEventListener('input', () => {
+                if (!this.captchaRespuestaInput)
+                    return;
+                this.captchaRespuestaInput.value = this.captchaRespuestaInput.value.replace(/[^0-9-]/g, '');
+                this.setFieldError(this.captchaRespuestaInput, '');
+            });
+        }
+        void this.loadCaptchaChallenge();
+    }
+    async loadCaptchaChallenge() {
+        if (this.captchaRespuestaInput) {
+            this.captchaRespuestaInput.value = '';
+            this.setFieldError(this.captchaRespuestaInput, '');
+        }
+        try {
+            const res = await fetch('/api/captcha', { cache: 'no-store' });
+            if (!res.ok)
+                throw new Error('Error obteniendo captcha');
+            const data = (await res.json());
+            if (this.captchaTokenInput) {
+                this.captchaTokenInput.value = data.token;
+            }
+            this.localCaptchaExpected =
+                data.operator === '+' ? data.a + data.b : data.a - data.b;
+            if (this.captchaQuestionText) {
+                this.captchaQuestionText.textContent = `¿Cuánto es ${data.question}?`;
+            }
+            this.drawCaptchaOnCanvas(`${data.question} = ?`);
+        }
+        catch {
+            const a = Math.floor(Math.random() * 8) + 2;
+            const b = Math.floor(Math.random() * 7) + 1;
+            this.localCaptchaExpected = a + b;
+            if (this.captchaTokenInput) {
+                this.captchaTokenInput.value = '';
+            }
+            if (this.captchaQuestionText) {
+                this.captchaQuestionText.textContent = `¿Cuánto es ${a} + ${b}?`;
+            }
+            this.drawCaptchaOnCanvas(`${a} + ${b} = ?`);
+        }
+    }
+    drawCaptchaOnCanvas(text) {
+        if (!this.captchaCanvas)
+            return;
+        const ctx = this.captchaCanvas.getContext('2d');
+        if (!ctx)
+            return;
+        const w = this.captchaCanvas.width;
+        const h = this.captchaCanvas.height;
+        ctx.clearRect(0, 0, w, h);
+        // Fondo institucional suave
+        ctx.fillStyle = '#f2f7fd';
+        ctx.fillRect(0, 0, w, h);
+        // Líneas de ruido anti-OCR
+        const colors = ['rgba(0,37,84,0.16)', 'rgba(252,76,2,0.18)', 'rgba(7,59,119,0.15)'];
+        for (let i = 0; i < 4; i++) {
+            ctx.strokeStyle = colors[i % colors.length];
+            ctx.lineWidth = 1.4;
+            ctx.beginPath();
+            ctx.moveTo(Math.random() * 20, Math.random() * h);
+            ctx.lineTo(w - Math.random() * 20, Math.random() * h);
+            ctx.stroke();
+        }
+        // Texto de la operación
+        ctx.font = '800 20px Inter, "Segoe UI", Arial, sans-serif';
+        ctx.fillStyle = '#002554';
+        ctx.textBaseline = 'middle';
+        ctx.textAlign = 'center';
+        ctx.fillText(text, w / 2, h / 2 + 1);
+    }
+    async initAnalyticsAndAudit() {
+        try {
+            const res = await fetch('/api/config/public', { cache: 'no-store' });
+            if (!res.ok)
+                return;
+            const cfg = (await res.json());
+            const w = window;
+            w.dataLayer = w.dataLayer || [];
+            if (!w.gtag) {
+                w.gtag = function (...args) {
+                    w.dataLayer?.push(args);
+                };
+            }
+            const primaryTagId = cfg.gaMeasurementId || cfg.googleAdsId || '';
+            if (primaryTagId) {
+                const script = document.createElement('script');
+                script.async = true;
+                script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(primaryTagId)}`;
+                document.head.appendChild(script);
+                w.gtag('js', new Date());
+                if (cfg.gaMeasurementId) {
+                    w.gtag('config', cfg.gaMeasurementId);
+                }
+                if (cfg.googleAdsId) {
+                    w.gtag('config', cfg.googleAdsId);
+                    if (cfg.googleAdsConversionLabel) {
+                        this.googleAdsConversionTag = `${cfg.googleAdsId}/${cfg.googleAdsConversionLabel}`;
+                    }
+                }
+            }
+        }
+        catch {
+            // Silencioso si no hay conexión
+        }
+    }
+    trackConversionEvent(payload) {
+        try {
+            const w = window;
+            if (typeof w.gtag === 'function') {
+                w.gtag('event', 'registro_participante_exitoso', {
+                    event_category: 'Campaña Actualización CONA',
+                    categoria_laboral: payload.categoria,
+                    departamento: payload.departamento
+                });
+                if (this.googleAdsConversionTag) {
+                    w.gtag('event', 'conversion', {
+                        send_to: this.googleAdsConversionTag
+                    });
+                }
+            }
+        }
+        catch { }
+    }
     firstInvalidField() {
         const el = this.form.querySelector(':invalid');
         if (!el)
@@ -670,6 +811,21 @@ export class FormController {
                 '';
             const categoriaVal = this.categoriaLabSelect.value;
             const especialidadVal = this.especialidadLabInput.value.trim();
+            // Verificación del Captcha contra bots antes de enviar
+            const captchaAns = this.captchaRespuestaInput ? this.captchaRespuestaInput.value.trim() : '';
+            const captchaTok = this.captchaTokenInput ? this.captchaTokenInput.value.trim() : '';
+            if (this.captchaRespuestaInput) {
+                const parsedAns = Number.parseInt(captchaAns, 10);
+                if (!captchaAns ||
+                    Number.isNaN(parsedAns) ||
+                    (this.localCaptchaExpected !== null && parsedAns !== this.localCaptchaExpected)) {
+                    this.setFieldError(this.captchaRespuestaInput, 'Respuesta incorrecta. Resuelve la operación matemática mostrada.');
+                    this.announce('Verificación anti-bots incorrecta', 'Por favor, ingresa el resultado correcto de la operación matemática.', true);
+                    this.captchaRespuestaInput.focus();
+                    void this.loadCaptchaChallenge();
+                    return;
+                }
+            }
             const payload = {
                 tipo_documento: tipoDocValue,
                 numero_documento: numDocVal,
@@ -699,7 +855,10 @@ export class FormController {
                 hijos_json: JSON.stringify(hijos),
                 consentimiento_datos_personales: this.consentimientoDatosCheck.checked,
                 version_consentimiento: '2026-10-16',
-                fecha_registro: new Date().toISOString()
+                fecha_registro: new Date().toISOString(),
+                website_url: this.websiteUrlInput ? this.websiteUrlInput.value : '',
+                captcha_token: captchaTok,
+                captcha_answer: captchaAns
             };
             this.submitBtn.disabled = true;
             this.submitBtn.textContent = 'Enviando…';
@@ -714,12 +873,18 @@ export class FormController {
                     this.setFieldError(this.numDocInput, result.message);
                     this.announce(`${tipoDocValue} ya registrado`, result.message, true);
                     this.numDocInput.focus();
+                    void this.loadCaptchaChallenge();
                     return;
                 }
                 if (!response.ok || !result.ok) {
+                    if (result.code === 'INVALID_CAPTCHA' && this.captchaRespuestaInput) {
+                        this.setFieldError(this.captchaRespuestaInput, result.message);
+                        void this.loadCaptchaChallenge();
+                    }
                     this.announce('No se pudo enviar', result.message || 'Intenta nuevamente en unos momentos.', true);
                     return;
                 }
+                this.trackConversionEvent(payload);
                 this.announce('¡Datos actualizados!', 'Tu información fue actualizada correctamente y ya estás participando en el sorteo.', false);
                 this.showSuccessScreen(payload);
                 return;

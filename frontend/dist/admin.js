@@ -243,6 +243,26 @@ class AdminPortalController {
         this.exportExcelBtn.addEventListener('click', () => {
             this.exportToExcel();
         });
+        const backupDbBtn = document.getElementById('backupDbBtn');
+        if (backupDbBtn) {
+            backupDbBtn.addEventListener('click', () => {
+                void this.downloadBackupDb(backupDbBtn);
+            });
+        }
+        const openAuditModalBtn = document.getElementById('openAuditModalBtn');
+        const closeAuditModalBtn = document.getElementById('closeAuditModalBtn');
+        const auditModal = document.getElementById('auditModal');
+        if (openAuditModalBtn && auditModal) {
+            openAuditModalBtn.addEventListener('click', () => {
+                auditModal.hidden = false;
+                void this.loadAuditLogs();
+            });
+        }
+        if (closeAuditModalBtn && auditModal) {
+            closeAuditModalBtn.addEventListener('click', () => {
+                auditModal.hidden = true;
+            });
+        }
         // Eventos del Modal de Eliminación (Soft Delete)
         this.cancelDeleteBtn.addEventListener('click', () => this.closeDeleteModal());
         this.confirmDeleteBtn.addEventListener('click', () => this.executeSoftDelete());
@@ -602,6 +622,88 @@ class AdminPortalController {
         finally {
             this.exportExcelBtn.disabled = false;
             this.exportExcelBtn.innerHTML = originalText;
+        }
+    }
+    async downloadBackupDb(btn) {
+        btn.disabled = true;
+        const originalHtml = btn.innerHTML;
+        btn.textContent = 'Generando respaldo…';
+        try {
+            const res = await fetch('/api/admin/backup-db', {
+                method: 'GET',
+                credentials: 'include'
+            });
+            if (res.status === 401) {
+                this.showLogin('Tu sesión expiró (HTTP 401). Inicia sesión nuevamente.');
+                return;
+            }
+            if (!res.ok) {
+                throw new Error('Error generando respaldo');
+            }
+            const blob = await res.blob();
+            const downloadUrl = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const dateStr = new Date().toISOString().slice(0, 10);
+            a.href = downloadUrl;
+            a.download = `CONA_Respaldo_BD_${dateStr}.db`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(downloadUrl);
+            this.notify('Respaldo descargado', 'La copia de seguridad de la base de datos (.db) se ha generado y descargado correctamente.');
+        }
+        catch {
+            this.notify('Error en respaldo', 'No se pudo descargar la copia de seguridad de la base de datos.', true);
+        }
+        finally {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+        }
+    }
+    async loadAuditLogs() {
+        const tbody = document.getElementById('auditTableBody');
+        if (!tbody)
+            return;
+        tbody.innerHTML = '<tr><td colspan="4" class="empty-cell">Cargando bitácora…</td></tr>';
+        try {
+            const res = await fetch('/api/admin/auditoria', {
+                method: 'GET',
+                credentials: 'include'
+            });
+            if (!res.ok)
+                throw new Error('Error consultando auditoría');
+            const data = (await res.json());
+            const elVisitas = document.getElementById('auditVisitas');
+            const elReg = document.getElementById('auditRegistros');
+            const elLogins = document.getElementById('auditLoginsOk');
+            const elResp = document.getElementById('auditRespaldos');
+            if (elVisitas)
+                elVisitas.textContent = String(data.totalVisitasLanding ?? 0);
+            if (elReg)
+                elReg.textContent = String(data.totalIntentosRegistro ?? 0);
+            if (elLogins)
+                elLogins.textContent = String(data.totalLoginsExitosos ?? 0);
+            if (elResp)
+                elResp.textContent = String(data.totalRespaldos ?? 0);
+            tbody.innerHTML = '';
+            if (!data.recientes || data.recientes.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="empty-cell">Sin eventos registrados.</td></tr>';
+                return;
+            }
+            data.recientes.forEach((item) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+          <td class="col-date">${this.formatDateTime(item.fecha)}</td>
+          <td><span class="doc-badge">${item.evento}</span></td>
+          <td><code>${item.ip}</code></td>
+          <td>${item.detalle}</td>
+        `;
+                tbody.appendChild(tr);
+            });
+        }
+        catch {
+            tbody.innerHTML =
+                '<tr><td colspan="4" class="empty-cell">No se pudo cargar la bitácora de auditoría.</td></tr>';
         }
     }
 }

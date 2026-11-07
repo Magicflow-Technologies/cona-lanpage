@@ -1,3 +1,4 @@
+import fs from 'fs';
 import { Request, Response } from 'express';
 import { IParticipanteRepository } from '../core/interfaces/IParticipanteRepository';
 import { Participante } from '../core/entities/Participante';
@@ -8,6 +9,11 @@ import {
   extractAdminToken
 } from '../infrastructure/security/auth';
 import { ExcelExporter } from '../infrastructure/excel/ExcelExporter';
+import { createDatabaseBackup } from '../infrastructure/database/sqlite';
+import {
+  logAuditEvent,
+  getAuditSummary
+} from '../infrastructure/security/securityMiddleware';
 
 export class AdminController {
   constructor(private readonly repository: IParticipanteRepository) {}
@@ -31,6 +37,7 @@ export class AdminController {
 
       const isValid = await authService.verifyCredentials(username, password);
       if (!isValid) {
+        logAuditEvent(req, 'ADMIN_LOGIN_FAIL', `Intento fallido usuario: ${username}`);
         res.status(401).json({
           ok: false,
           code: 'INVALID_CREDENTIALS',
@@ -39,6 +46,7 @@ export class AdminController {
         return;
       }
 
+      logAuditEvent(req, 'ADMIN_LOGIN_OK', `Inicio de sesión exitoso: ${username}`);
       const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https';
       const token = authService.generateToken(username);
       res.cookie('token', token, {
@@ -239,6 +247,7 @@ export class AdminController {
         return;
       }
 
+      logAuditEvent(req, 'ADMIN_SOFT_DELETE', `Participante ID #${id} enviado a papelera`);
       res.status(200).json({
         ok: true,
         message: 'Registro enviado a papelera.'
@@ -274,6 +283,7 @@ export class AdminController {
       const isPasswordValid = await authService.verifyAdminPassword(adminPassword);
 
       if (!isPasswordValid) {
+        logAuditEvent(req, 'ADMIN_RESTORE_FAIL', `Clave maestra incorrecta al restaurar ID #${id}`);
         res.status(403).json({
           ok: false,
           error: 'Contraseña incorrecta para autorizar la restauración.',
@@ -292,6 +302,7 @@ export class AdminController {
         return;
       }
 
+      logAuditEvent(req, 'ADMIN_RESTORE_OK', `Participante ID #${id} restaurado al padrón activo`);
       res.status(200).json({
         ok: true,
         message: 'Registro restaurado exitosamente en el padrón activo.'
@@ -325,6 +336,12 @@ export class AdminController {
       const stamp = new Date().toISOString().slice(0, 10);
       const filename = `CONA_Participantes_Sorteo_${stamp}.xlsx`;
 
+      logAuditEvent(
+        req,
+        'ADMIN_EXPORT_EXCEL',
+        `Exportación Excel (${registrosExportar.length} registros)`
+      );
+
       res.setHeader(
         'Content-Type',
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -337,6 +354,53 @@ export class AdminController {
         ok: false,
         code: 'EXCEL_EXPORT_ERROR',
         message: 'Error al generar el archivo Excel.'
+      });
+    }
+  };
+
+  /**
+   * GET /api/admin/backup-db
+   * Genera una copia de seguridad íntegra de `cona_campana.db` y la descarga (Punto 4.b).
+   */
+  public descargarBackupDb = (req: Request, res: Response): void => {
+    try {
+      const backupFilePath = createDatabaseBackup();
+      const stamp = new Date().toISOString().slice(0, 10);
+      const downloadFilename = `CONA_Respaldo_BD_${stamp}.db`;
+
+      logAuditEvent(req, 'ADMIN_BACKUP_DB', `Respaldo de base de datos generado: ${downloadFilename}`);
+
+      const fileBuffer = fs.readFileSync(backupFilePath);
+      res.setHeader('Content-Type', 'application/octet-stream');
+      res.setHeader('Content-Disposition', `attachment; filename="${downloadFilename}"`);
+      res.status(200).send(fileBuffer);
+    } catch (error) {
+      console.error('[AdminController.descargarBackupDb] Error:', error);
+      res.status(500).json({
+        ok: false,
+        code: 'DB_BACKUP_ERROR',
+        message: 'Error al generar el respaldo de la base de datos.'
+      });
+    }
+  };
+
+  /**
+   * GET /api/admin/auditoria
+   * Retorna estadísticas de ingreso, trazabilidad de accesos y bitácora de auditoría (Punto 4.a).
+   */
+  public obtenerAuditoria = (_req: Request, res: Response): void => {
+    try {
+      const summary = getAuditSummary(50);
+      res.status(200).json({
+        ok: true,
+        ...summary
+      });
+    } catch (error) {
+      console.error('[AdminController.obtenerAuditoria] Error:', error);
+      res.status(500).json({
+        ok: false,
+        code: 'AUDIT_ERROR',
+        message: 'No se pudo obtener la bitácora de auditoría.'
       });
     }
   };

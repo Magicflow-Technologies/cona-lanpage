@@ -5,6 +5,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getSqliteConnection = getSqliteConnection;
 exports.initializeSchema = initializeSchema;
+exports.getResolvedDbPath = getResolvedDbPath;
+exports.createDatabaseBackup = createDatabaseBackup;
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const better_sqlite3_1 = __importDefault(require("better-sqlite3"));
@@ -279,6 +281,52 @@ function initializeSchema(db) {
         console.log('[SQLite] Columna "no_conoce_ruc" agregada a la tabla "participantes".');
     }
     db.exec(`CREATE INDEX IF NOT EXISTS idx_participantes_activo ON participantes (activo);`);
-    console.log('[SQLite] Tabla "participantes" verificada y lista para recibir registros.');
+    // Tabla de Auditoría y Trazabilidad de Accesos (Punto 4.a y 4.d)
+    db.exec(`
+    CREATE TABLE IF NOT EXISTS auditoria_accesos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      evento TEXT NOT NULL,
+      ruta TEXT NOT NULL DEFAULT '',
+      ip TEXT NOT NULL DEFAULT '',
+      user_agent TEXT NOT NULL DEFAULT '',
+      detalle TEXT NOT NULL DEFAULT '',
+      fecha TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_auditoria_fecha ON auditoria_accesos (fecha DESC);
+    CREATE INDEX IF NOT EXISTS idx_auditoria_evento ON auditoria_accesos (evento);
+  `);
+    console.log('[SQLite] Tabla "participantes" y "auditoria_accesos" verificadas y listas.');
+}
+/**
+ * Obtiene la ruta absoluta del archivo de base de datos SQLite activo.
+ */
+function getResolvedDbPath() {
+    const projectRoot = path_1.default.resolve(__dirname, '../../../');
+    const configuredPath = process.env.DB_PATH || './cona_campana.db';
+    return path_1.default.isAbsolute(configuredPath)
+        ? configuredPath
+        : path_1.default.resolve(projectRoot, configuredPath);
+}
+/**
+ * Genera una copia de respaldo segura de `cona_campana.db` en la carpeta `backups/` (Punto 4.b).
+ */
+function createDatabaseBackup() {
+    const dbPath = getResolvedDbPath();
+    const projectRoot = path_1.default.resolve(__dirname, '../../../');
+    const backupsDir = path_1.default.join(projectRoot, 'backups');
+    if (!fs_1.default.existsSync(backupsDir)) {
+        fs_1.default.mkdirSync(backupsDir, { recursive: true });
+    }
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const backupFilePath = path_1.default.join(backupsDir, `cona_campana_backup_${stamp}.db`);
+    const db = getSqliteConnection();
+    try {
+        const escapedPath = backupFilePath.replace(/'/g, "''");
+        db.exec(`VACUUM INTO '${escapedPath}';`);
+    }
+    catch {
+        fs_1.default.copyFileSync(dbPath, backupFilePath);
+    }
+    return backupFilePath;
 }
 //# sourceMappingURL=sqlite.js.map

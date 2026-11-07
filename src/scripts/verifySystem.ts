@@ -55,13 +55,30 @@ async function runVerification(): Promise<void> {
       !homeHtml.includes('id="sinHijos"') ||
       !homeHtml.includes('id="consentimientoDatos"') ||
       !homeHtml.includes('id="consentToggle"') ||
+      !homeHtml.includes('Leer autorización completa') ||
+      !homeHtml.includes('Ej.: albañilería, encofrado o instalaciones eléctricas') ||
+      homeHtml.includes('Modo demostración · Sin almacenamiento') ||
+      !homeHtml.includes('id="captchaRespuesta"') ||
       !homeHtml.includes('Actualizar datos y participar')
     ) {
       throw new Error('La estructura del formulario no contiene todos los campos oficiales requeridos de Opción 4.');
     }
     console.log(
-      '✔ [1/7] Estructura del formulario verificada: Opción 4 (Formulario de página única) completa.'
+      '✔ [1/7] Estructura del formulario verificada: placeholder de Especialidad, sin texto rojo, con Captcha y "Leer autorización completa".'
     );
+
+    // 1.b Verificar endpoint anti-bots /api/captcha
+    const captchaRes = await fetch(`${baseUrl}/api/captcha`);
+    const captchaJson = (await captchaRes.json()) as {
+      ok: boolean;
+      token: string;
+      a: number;
+      b: number;
+      operator: '+' | '−';
+    };
+    if (captchaRes.status !== 200 || !captchaJson.ok || !captchaJson.token) {
+      throw new Error('Fallo al obtener reto anti-bots en /api/captcha');
+    }
 
     // 2. Probar Registro de Participante con DNI (HTTP 201) + Sanitización XSS
     const regRes = await fetch(`${baseUrl}/api/participantes`, {
