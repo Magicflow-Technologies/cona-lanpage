@@ -1,4 +1,3 @@
-import fs from 'fs';
 import { Request, Response } from 'express';
 import { IParticipanteRepository } from '../core/interfaces/IParticipanteRepository';
 import { Participante } from '../core/entities/Participante';
@@ -9,7 +8,6 @@ import {
   extractAdminToken
 } from '../infrastructure/security/auth';
 import { ExcelExporter } from '../infrastructure/excel/ExcelExporter';
-import { createDatabaseBackup } from '../infrastructure/database/sqlite';
 import {
   logAuditEvent,
   getAuditSummary
@@ -354,32 +352,6 @@ export class AdminController {
         ok: false,
         code: 'EXCEL_EXPORT_ERROR',
         message: 'Error al generar el archivo Excel.'
-      });
-    }
-  };
-
-  /**
-   * GET /api/admin/backup-db
-   * Genera una copia de seguridad íntegra de `cona_campana.db` y la descarga (Punto 4.b).
-   */
-  public descargarBackupDb = (req: Request, res: Response): void => {
-    try {
-      const backupFilePath = createDatabaseBackup();
-      const stamp = new Date().toISOString().slice(0, 10);
-      const downloadFilename = `CONA_Respaldo_BD_${stamp}.db`;
-
-      logAuditEvent(req, 'ADMIN_BACKUP_DB', `Respaldo de base de datos generado: ${downloadFilename}`);
-
-      const fileBuffer = fs.readFileSync(backupFilePath);
-      res.setHeader('Content-Type', 'application/octet-stream');
-      res.setHeader('Content-Disposition', `attachment; filename="${downloadFilename}"`);
-      res.status(200).send(fileBuffer);
-    } catch (error) {
-      console.error('[AdminController.descargarBackupDb] Error:', error);
-      res.status(500).json({
-        ok: false,
-        code: 'DB_BACKUP_ERROR',
-        message: 'Error al generar el respaldo de la base de datos.'
       });
     }
   };

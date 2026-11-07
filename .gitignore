@@ -4,5 +4,4 @@ node_modules/
 *.sqlite-wal
 *.db-shm
 *.db-wal
-backups/*.db
 cona-version3-deploy.zip

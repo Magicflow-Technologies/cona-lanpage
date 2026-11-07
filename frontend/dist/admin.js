@@ -243,12 +243,6 @@ class AdminPortalController {
         this.exportExcelBtn.addEventListener('click', () => {
             this.exportToExcel();
         });
-        const backupDbBtn = document.getElementById('backupDbBtn');
-        if (backupDbBtn) {
-            backupDbBtn.addEventListener('click', () => {
-                void this.downloadBackupDb(backupDbBtn);
-            });
-        }
         const openAuditModalBtn = document.getElementById('openAuditModalBtn');
         const closeAuditModalBtn = document.getElementById('closeAuditModalBtn');
         const auditModal = document.getElementById('auditModal');
@@ -622,42 +616,6 @@ class AdminPortalController {
         finally {
             this.exportExcelBtn.disabled = false;
             this.exportExcelBtn.innerHTML = originalText;
-        }
-    }
-    async downloadBackupDb(btn) {
-        btn.disabled = true;
-        const originalHtml = btn.innerHTML;
-        btn.textContent = 'Generando respaldo…';
-        try {
-            const res = await fetch('/api/admin/backup-db', {
-                method: 'GET',
-                credentials: 'include'
-            });
-            if (res.status === 401) {
-                this.showLogin('Tu sesión expiró (HTTP 401). Inicia sesión nuevamente.');
-                return;
-            }
-            if (!res.ok) {
-                throw new Error('Error generando respaldo');
-            }
-            const blob = await res.blob();
-            const downloadUrl = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            const dateStr = new Date().toISOString().slice(0, 10);
-            a.href = downloadUrl;
-            a.download = `CONA_Respaldo_BD_${dateStr}.db`;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            URL.revokeObjectURL(downloadUrl);
-            this.notify('Respaldo descargado', 'La copia de seguridad de la base de datos (.db) se ha generado y descargado correctamente.');
-        }
-        catch {
-            this.notify('Error en respaldo', 'No se pudo descargar la copia de seguridad de la base de datos.', true);
-        }
-        finally {
-            btn.disabled = false;
-            btn.innerHTML = originalHtml;
         }
     }
     async loadAuditLogs() {

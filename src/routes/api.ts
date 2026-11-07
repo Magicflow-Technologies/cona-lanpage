@@ -54,7 +54,6 @@ router.post(
 );
 router.get('/admin/exportar-excel', requireAdminAuth, container.adminController.exportarExcel);
 router.get('/admin/export-excel', requireAdminAuth, container.adminController.exportarExcel);
-router.get('/admin/backup-db', requireAdminAuth, container.adminController.descargarBackupDb);
 router.get('/admin/auditoria', requireAdminAuth, container.adminController.obtenerAuditoria);
 
 export default router;

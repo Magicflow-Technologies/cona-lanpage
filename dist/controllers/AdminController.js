@@ -1,13 +1,8 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AdminController = void 0;
-const fs_1 = __importDefault(require("fs"));
 const auth_1 = require("../infrastructure/security/auth");
 const ExcelExporter_1 = require("../infrastructure/excel/ExcelExporter");
-const sqlite_1 = require("../infrastructure/database/sqlite");
 const securityMiddleware_1 = require("../infrastructure/security/securityMiddleware");
 class AdminController {
     repository;
@@ -314,30 +309,6 @@ class AdminController {
                 ok: false,
                 code: 'EXCEL_EXPORT_ERROR',
                 message: 'Error al generar el archivo Excel.'
-            });
-        }
-    };
-    /**
-     * GET /api/admin/backup-db
-     * Genera una copia de seguridad íntegra de `cona_campana.db` y la descarga (Punto 4.b).
-     */
-    descargarBackupDb = (req, res) => {
-        try {
-            const backupFilePath = (0, sqlite_1.createDatabaseBackup)();
-            const stamp = new Date().toISOString().slice(0, 10);
-            const downloadFilename = `CONA_Respaldo_BD_${stamp}.db`;
-            (0, securityMiddleware_1.logAuditEvent)(req, 'ADMIN_BACKUP_DB', `Respaldo de base de datos generado: ${downloadFilename}`);
-            const fileBuffer = fs_1.default.readFileSync(backupFilePath);
-            res.setHeader('Content-Type', 'application/octet-stream');
-            res.setHeader('Content-Disposition', `attachment; filename="${downloadFilename}"`);
-            res.status(200).send(fileBuffer);
-        }
-        catch (error) {
-            console.error('[AdminController.descargarBackupDb] Error:', error);
-            res.status(500).json({
-                ok: false,
-                code: 'DB_BACKUP_ERROR',
-                message: 'Error al generar el respaldo de la base de datos.'
             });
         }
     };

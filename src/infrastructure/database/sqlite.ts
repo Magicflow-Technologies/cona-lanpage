@@ -334,40 +334,4 @@ export function initializeSchema(db: SqliteConnection): void {
   console.log('[SQLite] Tabla "participantes" y "auditoria_accesos" verificadas y listas.');
 }
 
-/**
- * Obtiene la ruta absoluta del archivo de base de datos SQLite activo.
- */
-export function getResolvedDbPath(): string {
-  const projectRoot = path.resolve(__dirname, '../../../');
-  const configuredPath = process.env.DB_PATH || './cona_campana.db';
-  return path.isAbsolute(configuredPath)
-    ? configuredPath
-    : path.resolve(projectRoot, configuredPath);
-}
-
-/**
- * Genera una copia de respaldo segura de `cona_campana.db` en la carpeta `backups/` (Punto 4.b).
- */
-export function createDatabaseBackup(): string {
-  const dbPath = getResolvedDbPath();
-  const projectRoot = path.resolve(__dirname, '../../../');
-  const backupsDir = path.join(projectRoot, 'backups');
-
-  if (!fs.existsSync(backupsDir)) {
-    fs.mkdirSync(backupsDir, { recursive: true });
-  }
-
-  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-  const backupFilePath = path.join(backupsDir, `cona_campana_backup_${stamp}.db`);
-
-  const db = getSqliteConnection();
-  try {
-    const escapedPath = backupFilePath.replace(/'/g, "''");
-    db.exec(`VACUUM INTO '${escapedPath}';`);
-  } catch {
-    fs.copyFileSync(dbPath, backupFilePath);
-  }
-
-  return backupFilePath;
-}
 
