@@ -630,7 +630,7 @@ export class FormController {
         try {
             const [res] = await Promise.all([
                 fetch('/api/captcha', { cache: 'no-store' }),
-                new Promise((r) => window.setTimeout(r, 550))
+                new Promise((r) => window.setTimeout(r, 1200))
             ]);
             if (!res.ok)
                 throw new Error('Error verificando reCAPTCHA');
