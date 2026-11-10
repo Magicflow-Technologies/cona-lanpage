@@ -55,7 +55,8 @@ async function runVerification(): Promise<void> {
       !homeHtml.includes('id="sinHijos"') ||
       !homeHtml.includes('id="consentimientoDatos"') ||
       !homeHtml.includes('id="consentToggle"') ||
-      !homeHtml.includes('Leer autorización completa') ||
+      !homeHtml.includes('Leer Bases del Sorteo') ||
+      !homeHtml.includes('He leído las Bases del Sorteo') ||
       !homeHtml.includes('Ej.: albañilería, encofrado o instalaciones eléctricas') ||
       homeHtml.includes('Modo demostración · Sin almacenamiento') ||
       !homeHtml.includes('id="captchaRespuesta"') ||

@@ -41,6 +41,7 @@ export class FormController {
         this.ubigeoData = LOCAL_UBIGEO_FALLBACK;
         this.isRecaptchaVerified = false;
         this.isRecaptchaVerifying = false;
+        this.hasClickedBases = false;
         this.googleAdsConversionTag = '';
         this.updateWorkPills = () => {
             const isSi = this.pillSi?.checked ?? true;
@@ -384,13 +385,25 @@ export class FormController {
     }
     initConsentAccordion() {
         this.consentToggle.addEventListener('click', () => {
+            this.hasClickedBases = true;
             const willOpen = this.consentDetail.hidden;
             this.consentDetail.hidden = !willOpen;
             this.consentToggle.setAttribute('aria-expanded', String(willOpen));
             this.consentToggle.textContent = willOpen
-                ? 'Ocultar autorización'
-                : 'Leer autorización completa';
+                ? 'Ocultar Bases del Sorteo'
+                : 'Leer Bases del Sorteo';
             if (willOpen) {
+                this.consentDetail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        });
+        // Si el usuario marca la casilla de bases antes de abrir el desplegable,
+        // se despliega automáticamente para que pueda revisarlas y se registra el clic
+        this.consentimientoDatosCheck.addEventListener('change', () => {
+            if (this.consentimientoDatosCheck.checked && !this.hasClickedBases) {
+                this.hasClickedBases = true;
+                this.consentDetail.hidden = false;
+                this.consentToggle.setAttribute('aria-expanded', 'true');
+                this.consentToggle.textContent = 'Ocultar Bases del Sorteo';
                 this.consentDetail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             }
         });
@@ -824,6 +837,23 @@ export class FormController {
                 this.setRecaptchaError('Por favor, marca la casilla «No soy un robot» para continuar.');
                 this.announce('Verificación requerida', 'Por favor, marca la casilla «No soy un robot» antes de enviar.', true);
                 this.recaptchaCheckBtn.focus();
+                return;
+            }
+            // Validación obligatoria de lectura y aceptación de las Bases del Sorteo
+            if (!this.hasClickedBases) {
+                this.announce('Bases del Sorteo obligatorias', 'Debes hacer clic en «Leer Bases del Sorteo» para conocer los términos antes de registrarte.', true);
+                this.consentDetail.hidden = false;
+                this.hasClickedBases = true;
+                this.consentToggle.setAttribute('aria-expanded', 'true');
+                this.consentToggle.textContent = 'Ocultar Bases del Sorteo';
+                this.consentToggle.focus();
+                this.consentToggle.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return;
+            }
+            if (!this.consentimientoDatosCheck.checked) {
+                this.setFieldError(this.consentimientoDatosCheck, 'Debes marcar la casilla para confirmar que has leído las bases.');
+                this.announce('Casilla requerida', 'Debes marcar la casilla «He leído las Bases del Sorteo» para continuar.', true);
+                this.consentimientoDatosCheck.focus();
                 return;
             }
             const payload = {
