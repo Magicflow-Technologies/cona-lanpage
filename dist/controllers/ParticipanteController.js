@@ -74,7 +74,13 @@ class ParticipanteController {
                     return;
                 }
             }
-            const dto = (0, sanitizer_1.validateAndSanitizeParticipanteDTO)(body);
+            const fallbackOrigin = (0, sanitizer_1.parseUserAgentOrigin)(String(req.headers['user-agent'] || ''));
+            const enrichedBody = {
+                ...body,
+                dispositivo: String(body.dispositivo || '').trim() || fallbackOrigin.dispositivo,
+                navegador: String(body.navegador || '').trim() || fallbackOrigin.navegador
+            };
+            const dto = (0, sanitizer_1.validateAndSanitizeParticipanteDTO)(enrichedBody);
             // Verificación explícita anti-duplicados por tipo y número de documento
             const existente = await this.repository.buscarPorDocumento(dto.tipo_documento, dto.numero_documento);
             if (existente && existente.activo) {

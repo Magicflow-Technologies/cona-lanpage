@@ -27,5 +27,7 @@ export interface ParticipanteDTO {
   hijos_json: string;
   hijos_detalle: HijoMenor[];
   consentimiento_datos_personales: boolean;
+  dispositivo: string;
+  navegador: string;
 }
 

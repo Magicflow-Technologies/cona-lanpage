@@ -110,7 +110,9 @@ async function runVerification(): Promise<void> {
         nombre_proyecto: 'Residencial Las Torres',
         hijos_menores: 1,
         hijos: [{ orden: 1, edad: 7, sexo: 'Femenino' }],
-        consentimiento_datos_personales: true
+        consentimiento_datos_personales: true,
+        dispositivo: 'Android',
+        navegador: 'Chrome'
       })
     });
 
@@ -123,10 +125,18 @@ async function runVerification(): Promise<void> {
         nombres: string;
         ruc_empresa: string;
         estado_sorteo: string;
+        dispositivo: string;
+        navegador: string;
       };
     };
-    if (regRes.status !== 201 || !regJson.ok || regJson.data.numero_documento !== '45892310') {
-      throw new Error(`Fallo al registrar participante válido: status=${regRes.status}`);
+    if (
+      regRes.status !== 201 ||
+      !regJson.ok ||
+      regJson.data.numero_documento !== '45892310' ||
+      regJson.data.dispositivo !== 'Android' ||
+      regJson.data.navegador !== 'Chrome'
+    ) {
+      throw new Error(`Fallo al registrar participante válido o metadatos de origen: status=${regRes.status}`);
     }
     if (regJson.data.apellidos.includes('<script>')) {
       throw new Error('Fallo de sanitización XSS en apellidos');
@@ -303,15 +313,23 @@ async function runVerification(): Promise<void> {
     const listJson = (await listRes.json()) as {
       ok: boolean;
       filtrados: number;
-      data: Array<{ numero_documento: string; apellidos: string; nombres: string }>;
+      data: Array<{
+        numero_documento: string;
+        apellidos: string;
+        nombres: string;
+        dispositivo?: string;
+        navegador?: string;
+      }>;
     };
     if (
       listRes.status !== 200 ||
       !listJson.ok ||
       listJson.filtrados < 1 ||
-      listJson.data[0].numero_documento !== '45892310'
+      listJson.data[0].numero_documento !== '45892310' ||
+      listJson.data[0].dispositivo !== 'Android' ||
+      listJson.data[0].navegador !== 'Chrome'
     ) {
-      throw new Error('El buscador administrativo por documento no devolvió el registro restaurado.');
+      throw new Error('El buscador administrativo por documento no devolvió el registro restaurado con dispositivo/navegador.');
     }
     console.log('✔ [6/7] Consulta protegida del padrón activo verificada.');
 

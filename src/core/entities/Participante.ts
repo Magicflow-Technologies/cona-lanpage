@@ -41,6 +41,8 @@ export interface Participante {
   hijos_detalle: HijoMenor[];
   consentimiento_datos_personales: boolean;
   estado_sorteo: 'Participando' | 'Excluido';
+  dispositivo: string;
+  navegador: string;
   fecha_registro: string;
   activo: boolean;
   fecha_eliminacion: string | null;

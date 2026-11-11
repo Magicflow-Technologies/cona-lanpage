@@ -51,7 +51,8 @@ async function runVerification() {
             !homeHtml.includes('id="sinHijos"') ||
             !homeHtml.includes('id="consentimientoDatos"') ||
             !homeHtml.includes('id="consentToggle"') ||
-            !homeHtml.includes('Leer autorización completa') ||
+            !homeHtml.includes('Leer Bases del Sorteo') ||
+            !homeHtml.includes('He leído las Bases del Sorteo') ||
             !homeHtml.includes('Ej.: albañilería, encofrado o instalaciones eléctricas') ||
             homeHtml.includes('Modo demostración · Sin almacenamiento') ||
             !homeHtml.includes('id="captchaRespuesta"') ||
@@ -94,12 +95,18 @@ async function runVerification() {
                 nombre_proyecto: 'Residencial Las Torres',
                 hijos_menores: 1,
                 hijos: [{ orden: 1, edad: 7, sexo: 'Femenino' }],
-                consentimiento_datos_personales: true
+                consentimiento_datos_personales: true,
+                dispositivo: 'Android',
+                navegador: 'Chrome'
             })
         });
         const regJson = (await regRes.json());
-        if (regRes.status !== 201 || !regJson.ok || regJson.data.numero_documento !== '45892310') {
-            throw new Error(`Fallo al registrar participante válido: status=${regRes.status}`);
+        if (regRes.status !== 201 ||
+            !regJson.ok ||
+            regJson.data.numero_documento !== '45892310' ||
+            regJson.data.dispositivo !== 'Android' ||
+            regJson.data.navegador !== 'Chrome') {
+            throw new Error(`Fallo al registrar participante válido o metadatos de origen: status=${regRes.status}`);
         }
         if (regJson.data.apellidos.includes('<script>')) {
             throw new Error('Fallo de sanitización XSS en apellidos');
@@ -245,8 +252,10 @@ async function runVerification() {
         if (listRes.status !== 200 ||
             !listJson.ok ||
             listJson.filtrados < 1 ||
-            listJson.data[0].numero_documento !== '45892310') {
-            throw new Error('El buscador administrativo por documento no devolvió el registro restaurado.');
+            listJson.data[0].numero_documento !== '45892310' ||
+            listJson.data[0].dispositivo !== 'Android' ||
+            listJson.data[0].navegador !== 'Chrome') {
+            throw new Error('El buscador administrativo por documento no devolvió el registro restaurado con dispositivo/navegador.');
         }
         console.log('✔ [6/7] Consulta protegida del padrón activo verificada.');
         const excelRes = await fetch(`${baseUrl}/api/admin/exportar-excel`, {

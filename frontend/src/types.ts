@@ -40,6 +40,8 @@ export interface ParticipantePayload {
   hijos: HijoFormItem[];
   hijos_json: string;
   consentimiento_datos_personales: boolean;
+  dispositivo?: string;
+  navegador?: string;
   version_consentimiento?: string;
   fecha_registro?: string;
   website_url?: string;
@@ -84,6 +86,8 @@ export interface ParticipanteRecord {
   hijos_detalle?: HijoFormItem[];
   consentimiento_datos_personales: boolean;
   estado_sorteo: string;
+  dispositivo?: string;
+  navegador?: string;
   fecha_registro: string;
   activo?: boolean;
   fecha_eliminacion?: string | null;

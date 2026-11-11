@@ -10,8 +10,8 @@ const SELECT_COLUMNS = `
   categoria_laboral, categoria, especialidad_laboral, especialidad,
   trabaja_en_obra, ruc_empleador, ruc_empresa, no_conoce_ruc,
   nombre_proyecto, hijos_menores, hijos_json,
-  consentimiento_datos_personales, estado_sorteo, fecha_registro,
-  activo, fecha_eliminacion
+  consentimiento_datos_personales, estado_sorteo, dispositivo, navegador,
+  fecha_registro, activo, fecha_eliminacion
 `;
 /**
  * Adaptador de Persistencia SQLite implementando IParticipanteRepository sobre `cona_campana.db`.
@@ -89,6 +89,8 @@ class SqliteParticipanteRepository {
             hijos_detalle: parsedHijos,
             consentimiento_datos_personales: Boolean(row.consentimiento_datos_personales),
             estado_sorteo: row.estado_sorteo || 'Participando',
+            dispositivo: row.dispositivo || 'No detectado',
+            navegador: row.navegador || 'No detectado',
             fecha_registro: row.fecha_registro,
             activo: row.activo === undefined ? true : Number(row.activo) === 1,
             fecha_eliminacion: row.fecha_eliminacion ?? null,
@@ -167,12 +169,14 @@ class SqliteParticipanteRepository {
           hijos_json = ?,
           consentimiento_datos_personales = ?,
           estado_sorteo = 'Participando',
+          dispositivo = ?,
+          navegador = ?,
           fecha_registro = ?,
           activo = 1,
           fecha_eliminacion = NULL
         WHERE id = ?
       `);
-            reactivateStmt.run(data.tipo_documento || 'DNI', data.numero_documento, data.nombres, data.apellidos, data.fecha_nacimiento || '', data.celular, data.correo || '', direccionFinal, direccionFinal, data.departamento, data.provincia, data.distrito, data.ubigeo || '', catFinal, catFinal, espFinal, espFinal, data.trabaja_en_obra ? 1 : 0, rucFinal, rucFinal, data.no_conoce_ruc ? 1 : 0, data.nombre_proyecto || '', data.hijos_menores ?? 0, hijosJson, data.consentimiento_datos_personales ? 1 : 0, fechaRegistroIso, existente.id);
+            reactivateStmt.run(data.tipo_documento || 'DNI', data.numero_documento, data.nombres, data.apellidos, data.fecha_nacimiento || '', data.celular, data.correo || '', direccionFinal, direccionFinal, data.departamento, data.provincia, data.distrito, data.ubigeo || '', catFinal, catFinal, espFinal, espFinal, data.trabaja_en_obra ? 1 : 0, rucFinal, rucFinal, data.no_conoce_ruc ? 1 : 0, data.nombre_proyecto || '', data.hijos_menores ?? 0, hijosJson, data.consentimiento_datos_personales ? 1 : 0, data.dispositivo || 'No detectado', data.navegador || 'No detectado', fechaRegistroIso, existente.id);
             const selectReactivatedStmt = this.db.prepare(`
         SELECT ${SELECT_COLUMNS}
         FROM participantes
@@ -213,13 +217,15 @@ class SqliteParticipanteRepository {
         hijos_json,
         consentimiento_datos_personales,
         estado_sorteo,
+        dispositivo,
+        navegador,
         fecha_registro,
         activo,
         fecha_eliminacion
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Participando', ?, 1, NULL)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Participando', ?, ?, ?, 1, NULL)
     `);
         try {
-            const result = insertStmt.run(data.tipo_documento || 'DNI', data.numero_documento, data.nombres, data.apellidos, data.fecha_nacimiento || '', data.celular, data.correo || '', direccionFinal, direccionFinal, data.departamento, data.provincia, data.distrito, data.ubigeo || '', catFinal, catFinal, espFinal, espFinal, data.trabaja_en_obra ? 1 : 0, rucFinal, rucFinal, data.no_conoce_ruc ? 1 : 0, data.nombre_proyecto || '', data.hijos_menores ?? 0, hijosJson, data.consentimiento_datos_personales ? 1 : 0, fechaRegistroIso);
+            const result = insertStmt.run(data.tipo_documento || 'DNI', data.numero_documento, data.nombres, data.apellidos, data.fecha_nacimiento || '', data.celular, data.correo || '', direccionFinal, direccionFinal, data.departamento, data.provincia, data.distrito, data.ubigeo || '', catFinal, catFinal, espFinal, espFinal, data.trabaja_en_obra ? 1 : 0, rucFinal, rucFinal, data.no_conoce_ruc ? 1 : 0, data.nombre_proyecto || '', data.hijos_menores ?? 0, hijosJson, data.consentimiento_datos_personales ? 1 : 0, data.dispositivo || 'No detectado', data.navegador || 'No detectado', fechaRegistroIso);
             const newId = Number(result.lastInsertRowid);
             const selectByIdStmt = this.db.prepare(`
         SELECT ${SELECT_COLUMNS}

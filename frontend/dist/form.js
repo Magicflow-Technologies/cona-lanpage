@@ -1,3 +1,4 @@
+import { detectClientOrigin } from './deviceDetector.js';
 const RFC_EMAIL_REGEX = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
 const UBIGEO_CSV = 'https://raw.githubusercontent.com/Rodasluis/Peru-maps/main/salida/ubigeos_2026.csv';
 const UBIGEO_FALLBACK = {
@@ -856,6 +857,7 @@ export class FormController {
                 this.consentimientoDatosCheck.focus();
                 return;
             }
+            const clientOrigin = detectClientOrigin();
             const payload = {
                 tipo_documento: tipoDocValue,
                 numero_documento: numDocVal,
@@ -884,6 +886,8 @@ export class FormController {
                 hijos,
                 hijos_json: JSON.stringify(hijos),
                 consentimiento_datos_personales: this.consentimientoDatosCheck.checked,
+                dispositivo: clientOrigin.dispositivo,
+                navegador: clientOrigin.navegador,
                 version_consentimiento: '2026-10-16',
                 fecha_registro: new Date().toISOString(),
                 website_url: this.websiteUrlInput ? this.websiteUrlInput.value : '',

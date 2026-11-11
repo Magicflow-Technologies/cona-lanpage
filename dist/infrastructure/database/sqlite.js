@@ -221,6 +221,8 @@ function initializeSchema(db) {
       hijos_json TEXT NOT NULL DEFAULT '[]',
       consentimiento_datos_personales INTEGER NOT NULL CHECK (consentimiento_datos_personales IN (0, 1)) DEFAULT 1,
       estado_sorteo TEXT NOT NULL DEFAULT 'Participando',
+      dispositivo TEXT NOT NULL DEFAULT '',
+      navegador TEXT NOT NULL DEFAULT '',
       fecha_registro TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
       activo INTEGER NOT NULL DEFAULT 1,
       fecha_eliminacion TEXT NULL
@@ -277,6 +279,14 @@ function initializeSchema(db) {
     if (!currentCols.has('no_conoce_ruc')) {
         db.exec(`ALTER TABLE participantes ADD COLUMN no_conoce_ruc INTEGER NOT NULL DEFAULT 0;`);
         console.log('[SQLite] Columna "no_conoce_ruc" agregada a la tabla "participantes".');
+    }
+    if (!currentCols.has('dispositivo')) {
+        db.exec(`ALTER TABLE participantes ADD COLUMN dispositivo TEXT NOT NULL DEFAULT '';`);
+        console.log('[SQLite] Columna "dispositivo" agregada a la tabla "participantes".');
+    }
+    if (!currentCols.has('navegador')) {
+        db.exec(`ALTER TABLE participantes ADD COLUMN navegador TEXT NOT NULL DEFAULT '';`);
+        console.log('[SQLite] Columna "navegador" agregada a la tabla "participantes".');
     }
     db.exec(`CREATE INDEX IF NOT EXISTS idx_participantes_activo ON participantes (activo);`);
     // Tabla de Auditoría y Trazabilidad de Accesos (Punto 4.a y 4.d)

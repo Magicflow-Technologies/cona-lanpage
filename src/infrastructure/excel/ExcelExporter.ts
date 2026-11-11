@@ -17,7 +17,7 @@ export class ExcelExporter {
       views: [{ state: 'frozen', ySplit: 3 }]
     });
 
-    // Definición de columnas (Fila 3 como cabecera de datos - 22 columnas: A..V)
+    // Definición de columnas (Fila 3 como cabecera de datos - 24 columnas: A..X)
     const headers = [
       'ID',
       'Tipo de Documento',
@@ -40,11 +40,13 @@ export class ExcelExporter {
       'N.º Hijos Menores',
       'Detalle Hijos (Edad / Sexo)',
       'Estado en el Sorteo',
-      'Fecha y Hora de Registro'
+      'Fecha y Hora de Registro',
+      'Dispositivo',
+      'Navegador'
     ];
 
-    // Fila 1: Título Institucional (22 columnas: A..V)
-    sheet.mergeCells('A1:V1');
+    // Fila 1: Título Institucional (24 columnas: A..X)
+    sheet.mergeCells('A1:X1');
     const titleCell = sheet.getCell('A1');
     titleCell.value =
       'CONA · CAMPAÑA DE ACTUALIZACIÓN DE DATOS — PADRÓN OFICIAL DE PARTICIPANTES DEL SORTEO';
@@ -63,7 +65,7 @@ export class ExcelExporter {
     sheet.getRow(1).height = 30;
 
     // Fila 2: Subtítulo con fecha de exportación y conteo
-    sheet.mergeCells('A2:V2');
+    sheet.mergeCells('A2:X2');
     const subtitleCell = sheet.getCell('A2');
     const nowFormatted = new Intl.DateTimeFormat('es-PE', {
       dateStyle: 'full',
@@ -151,7 +153,9 @@ export class ExcelExporter {
         p.hijos_menores ?? 0,
         detalleHijos,
         p.estado_sorteo,
-        fechaFormateada
+        fechaFormateada,
+        unescapeForExcel(p.dispositivo) || 'No detectado',
+        unescapeForExcel(p.navegador) || 'No detectado'
       ];
 
       const row = sheet.addRow(rowValues);
@@ -174,7 +178,7 @@ export class ExcelExporter {
           right: { style: 'thin', color: { argb: 'FFD8E2EE' } }
         };
 
-        if ([1, 2, 3, 6, 7, 13, 15, 17, 19, 21, 22].includes(colNumber)) {
+        if ([1, 2, 3, 6, 7, 13, 15, 17, 19, 21, 22, 23, 24].includes(colNumber)) {
           cell.alignment = { vertical: 'middle', horizontal: 'center' };
         } else {
           cell.alignment = { vertical: 'middle', horizontal: 'left' };

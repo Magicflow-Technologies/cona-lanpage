@@ -5,6 +5,7 @@ exports.escapeHtml = escapeHtml;
 exports.sanitizeString = sanitizeString;
 exports.sanitizeEmail = sanitizeEmail;
 exports.parseBooleanField = parseBooleanField;
+exports.parseUserAgentOrigin = parseUserAgentOrigin;
 exports.validateAndSanitizeParticipanteDTO = validateAndSanitizeParticipanteDTO;
 const AppError_1 = require("../../core/errors/AppError");
 const HTML_ESCAPE_MAP = {
@@ -59,6 +60,79 @@ function parseBooleanField(val) {
         return ['true', '1', 'sí', 'si', 'on', 'yes'].includes(normalized);
     }
     return false;
+}
+/**
+ * Extrae el Sistema Operativo / Dispositivo y Navegador Web desde un User-Agent HTTP
+ * como respaldo del servidor cuando el cliente no adjunta esos metadatos.
+ */
+function parseUserAgentOrigin(userAgent) {
+    const ua = (userAgent || '').trim();
+    if (!ua) {
+        return { dispositivo: 'Desconocido', navegador: 'Desconocido' };
+    }
+    let dispositivo = 'Desconocido';
+    if (/Windows Phone/i.test(ua)) {
+        dispositivo = 'Windows Phone';
+    }
+    else if (/Android/i.test(ua)) {
+        dispositivo = 'Android';
+    }
+    else if (/iPhone/i.test(ua)) {
+        dispositivo = 'iPhone / iOS';
+    }
+    else if (/iPad/i.test(ua)) {
+        dispositivo = 'iPad / iOS';
+    }
+    else if (/iPod/i.test(ua)) {
+        dispositivo = 'iPod / iOS';
+    }
+    else if (/CrOS/i.test(ua)) {
+        dispositivo = 'ChromeOS';
+    }
+    else if (/Windows/i.test(ua)) {
+        dispositivo = 'Windows';
+    }
+    else if (/Macintosh|Mac OS X/i.test(ua)) {
+        dispositivo = 'Mac';
+    }
+    else if (/Linux/i.test(ua)) {
+        dispositivo = 'Linux';
+    }
+    let navegador = 'Otro';
+    if (/WhatsApp/i.test(ua)) {
+        navegador = 'WhatsApp Browser';
+    }
+    else if (/FBAN|FBAV/i.test(ua)) {
+        navegador = 'Facebook Browser';
+    }
+    else if (/Instagram/i.test(ua)) {
+        navegador = 'Instagram Browser';
+    }
+    else if (/EdgA|EdgiOS|Edg\//i.test(ua)) {
+        navegador = 'Edge';
+    }
+    else if (/OPR\/|Opera/i.test(ua)) {
+        navegador = 'Opera';
+    }
+    else if (/SamsungBrowser/i.test(ua)) {
+        navegador = 'Samsung Internet';
+    }
+    else if (/UCBrowser/i.test(ua)) {
+        navegador = 'UC Browser';
+    }
+    else if (/Firefox|FxiOS/i.test(ua)) {
+        navegador = 'Firefox';
+    }
+    else if (/CriOS|Chrome/i.test(ua)) {
+        navegador = 'Chrome';
+    }
+    else if (/Safari/i.test(ua)) {
+        navegador = 'Safari';
+    }
+    else if (/MSIE|Trident/i.test(ua)) {
+        navegador = 'Internet Explorer';
+    }
+    return { dispositivo, navegador };
 }
 const VALID_CATEGORIES = new Set(['Peón', 'Peon', 'Oficial', 'Operario']);
 /**
@@ -242,6 +316,11 @@ function validateAndSanitizeParticipanteDTO(raw) {
     if (!consentimiento_datos_personales) {
         throw new AppError_1.AppError('Debes autorizar el tratamiento de tus datos personales para participar.', 400, 'CONSENT_REQUIRED');
     }
+    // 6. Origen técnico de la visita (Dispositivo / Navegador)
+    const rawDispositivo = sanitizeString(raw.dispositivo, 60);
+    const rawNavegador = sanitizeString(raw.navegador, 60);
+    const dispositivo = rawDispositivo || 'No detectado';
+    const navegador = rawNavegador || 'No detectado';
     return {
         tipo_documento,
         numero_documento,
@@ -268,7 +347,9 @@ function validateAndSanitizeParticipanteDTO(raw) {
         hijos_menores,
         hijos_json: JSON.stringify(hijos_detalle),
         hijos_detalle,
-        consentimiento_datos_personales
+        consentimiento_datos_personales,
+        dispositivo,
+        navegador
     };
 }
 //# sourceMappingURL=sanitizer.js.map

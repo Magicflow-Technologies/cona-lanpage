@@ -32,6 +32,8 @@ interface ParticipanteRow {
   hijos_json: string;
   consentimiento_datos_personales: number;
   estado_sorteo: string;
+  dispositivo?: string;
+  navegador?: string;
   fecha_registro: string;
   activo?: number;
   fecha_eliminacion?: string | null;
@@ -44,8 +46,8 @@ const SELECT_COLUMNS = `
   categoria_laboral, categoria, especialidad_laboral, especialidad,
   trabaja_en_obra, ruc_empleador, ruc_empresa, no_conoce_ruc,
   nombre_proyecto, hijos_menores, hijos_json,
-  consentimiento_datos_personales, estado_sorteo, fecha_registro,
-  activo, fecha_eliminacion
+  consentimiento_datos_personales, estado_sorteo, dispositivo, navegador,
+  fecha_registro, activo, fecha_eliminacion
 `;
 
 /**
@@ -130,6 +132,8 @@ export class SqliteParticipanteRepository implements IParticipanteRepository {
       hijos_detalle: parsedHijos,
       consentimiento_datos_personales: Boolean(row.consentimiento_datos_personales),
       estado_sorteo: (row.estado_sorteo as 'Participando' | 'Excluido') || 'Participando',
+      dispositivo: row.dispositivo || 'No detectado',
+      navegador: row.navegador || 'No detectado',
       fecha_registro: row.fecha_registro,
       activo: row.activo === undefined ? true : Number(row.activo) === 1,
       fecha_eliminacion: row.fecha_eliminacion ?? null,
@@ -226,6 +230,8 @@ export class SqliteParticipanteRepository implements IParticipanteRepository {
           hijos_json = ?,
           consentimiento_datos_personales = ?,
           estado_sorteo = 'Participando',
+          dispositivo = ?,
+          navegador = ?,
           fecha_registro = ?,
           activo = 1,
           fecha_eliminacion = NULL
@@ -258,6 +264,8 @@ export class SqliteParticipanteRepository implements IParticipanteRepository {
         data.hijos_menores ?? 0,
         hijosJson,
         data.consentimiento_datos_personales ? 1 : 0,
+        data.dispositivo || 'No detectado',
+        data.navegador || 'No detectado',
         fechaRegistroIso,
         existente.id
       );
@@ -304,10 +312,12 @@ export class SqliteParticipanteRepository implements IParticipanteRepository {
         hijos_json,
         consentimiento_datos_personales,
         estado_sorteo,
+        dispositivo,
+        navegador,
         fecha_registro,
         activo,
         fecha_eliminacion
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Participando', ?, 1, NULL)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Participando', ?, ?, ?, 1, NULL)
     `);
 
     try {
@@ -337,6 +347,8 @@ export class SqliteParticipanteRepository implements IParticipanteRepository {
         data.hijos_menores ?? 0,
         hijosJson,
         data.consentimiento_datos_personales ? 1 : 0,
+        data.dispositivo || 'No detectado',
+        data.navegador || 'No detectado',
         fechaRegistroIso
       );
 

@@ -34,6 +34,8 @@ CREATE TABLE IF NOT EXISTS participantes (
     hijos_json TEXT NOT NULL DEFAULT '[]',
     consentimiento_datos_personales INTEGER NOT NULL CHECK (consentimiento_datos_personales IN (0, 1)) DEFAULT 1,
     estado_sorteo TEXT NOT NULL DEFAULT 'Participando',
+    dispositivo TEXT NOT NULL DEFAULT '',
+    navegador TEXT NOT NULL DEFAULT '',
     fecha_registro TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     activo INTEGER NOT NULL DEFAULT 1,
     fecha_eliminacion TEXT NULL

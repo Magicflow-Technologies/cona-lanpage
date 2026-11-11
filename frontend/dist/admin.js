@@ -468,7 +468,9 @@ class AdminPortalController {
                     item.especialidad || '',
                     item.departamento || '',
                     item.provincia || '',
-                    item.distrito || ''
+                    item.distrito || '',
+                    item.dispositivo || '',
+                    item.navegador || ''
                 ]
                     .join(' ')
                     .toLowerCase();
@@ -517,7 +519,7 @@ class AdminPortalController {
                 ? 'No se encontraron participantes activos con los criterios seleccionados.'
                 : 'La papelera de eliminados está vacía.';
             tr.innerHTML = `
-        <td colspan="10" class="empty-cell">
+        <td colspan="12" class="empty-cell">
           ${emptyMsg}
         </td>
       `;
@@ -567,6 +569,8 @@ class AdminPortalController {
         </td>
         <td><a class="table-link" href="tel:${r.celular}">${r.celular}</a></td>
         <td>${r.correo ? `<a class="table-link" href="mailto:${r.correo}">${r.correo}</a>` : '<span class="participant-meta">(No indicado)</span>'}</td>
+        <td><span class="doc-badge">${r.dispositivo || 'No detectado'}</span></td>
+        <td><span class="participant-meta" style="margin-top:0;font-weight:700;color:#172033;">${r.navegador || 'No detectado'}</span></td>
         <td class="col-date">${this.formatDateTime(r.fecha_registro)}</td>
         <td>${statusHtml}</td>
         <td>${actionHtml}</td>

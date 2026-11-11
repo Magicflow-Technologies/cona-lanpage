@@ -1,6 +1,9 @@
 import { Request, Response } from 'express';
 import { IParticipanteRepository } from '../core/interfaces/IParticipanteRepository';
-import { validateAndSanitizeParticipanteDTO } from '../infrastructure/security/sanitizer';
+import {
+  parseUserAgentOrigin,
+  validateAndSanitizeParticipanteDTO
+} from '../infrastructure/security/sanitizer';
 import { AppError, DuplicateDocumentError } from '../core/errors/AppError';
 import {
   generateCaptchaChallenge,
@@ -84,7 +87,14 @@ export class ParticipanteController {
         }
       }
 
-      const dto = validateAndSanitizeParticipanteDTO(body);
+      const fallbackOrigin = parseUserAgentOrigin(String(req.headers['user-agent'] || ''));
+      const enrichedBody = {
+        ...body,
+        dispositivo: String(body.dispositivo || '').trim() || fallbackOrigin.dispositivo,
+        navegador: String(body.navegador || '').trim() || fallbackOrigin.navegador
+      };
+
+      const dto = validateAndSanitizeParticipanteDTO(enrichedBody);
 
       // Verificación explícita anti-duplicados por tipo y número de documento
       const existente = await this.repository.buscarPorDocumento(
