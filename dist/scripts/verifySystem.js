@@ -50,9 +50,15 @@ async function runVerification() {
             !homeHtml.includes('id="quitarHijo"') ||
             !homeHtml.includes('id="sinHijos"') ||
             !homeHtml.includes('id="consentimientoDatos"') ||
+            !homeHtml.includes('Autorizo el tratamiento de mis datos personales') ||
+            !homeHtml.includes('id="openAuthModalBtn"') ||
+            !homeHtml.includes('Leer autorización completa') ||
+            !homeHtml.includes('id="authLegalModal"') ||
+            !homeHtml.includes('id="basesSorteoCheck"') ||
             !homeHtml.includes('id="consentToggle"') ||
             !homeHtml.includes('Leer Bases del Sorteo') ||
             !homeHtml.includes('He leído las Bases del Sorteo') ||
+            homeHtml.indexOf('id="authBlock"') > homeHtml.indexOf('id="consentBlock"') ||
             !homeHtml.includes('Ej.: albañilería, encofrado o instalaciones eléctricas') ||
             homeHtml.includes('Modo demostración · Sin almacenamiento') ||
             !homeHtml.includes('id="captchaRespuesta"') ||

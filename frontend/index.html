@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Campaña de actualización de datos | CONA</title>
   <meta name="description" content="Campaña de actualización de datos - CONA. Tu información nos importa." />
-  <link rel="stylesheet" href="styles.css?v=20261111_02" />
+  <link rel="stylesheet" href="styles.css?v=20261111_03" />
 </head>
 <body>
   <div class="ambient" aria-hidden="true" id="ambient"></div>
@@ -262,11 +262,22 @@
             </div>
           </section>
 
-          <!-- Recuadro de Consentimiento Legal y Bases del Sorteo con borde gris claro -->
-          <div class="legal-consent-card" id="consentBlock">
+          <!-- Recuadro 1: Consentimiento y Autorización de Datos Personales -->
+          <div class="legal-consent-card" id="authBlock">
             <div class="consent-head">
               <input class="consent-check" id="consentimientoDatos" name="consentimiento_datos_personales" type="checkbox" value="Sí" required />
-              <label class="consent-label" for="consentimientoDatos">He leído las Bases del Sorteo <span class="req">*</span></label>
+              <label class="consent-label" for="consentimientoDatos">Autorizo el tratamiento de mis datos personales <span class="req">*</span></label>
+            </div>
+            <div class="consent-actions">
+              <button class="consent-toggle-btn" id="openAuthModalBtn" type="button" aria-haspopup="dialog" aria-controls="authLegalModal">Leer autorización completa</button>
+            </div>
+          </div>
+
+          <!-- Recuadro 2: Bases del Sorteo -->
+          <div class="legal-consent-card" id="consentBlock">
+            <div class="consent-head">
+              <input class="consent-check" id="basesSorteoCheck" name="acepta_bases_sorteo" type="checkbox" value="Sí" required />
+              <label class="consent-label" for="basesSorteoCheck">He leído las Bases del Sorteo <span class="req">*</span></label>
             </div>
             <div class="consent-actions">
               <button class="consent-toggle-btn" id="consentToggle" type="button" aria-expanded="false" aria-controls="consentDetail">Leer Bases del Sorteo</button>
@@ -356,8 +367,56 @@
     </footer>
   </div>
 
+  <!-- Modal accesible de Autorización Completa de Datos Personales -->
+  <div class="legal-modal-backdrop" id="authLegalModal" role="dialog" aria-modal="true" aria-labelledby="authModalTitle" hidden>
+    <div class="legal-modal-dialog">
+      <div class="legal-modal-header">
+        <h3 id="authModalTitle">Autorización para el Tratamiento de Datos Personales</h3>
+        <button class="legal-modal-close" id="closeAuthModalBtn" type="button" aria-label="Cerrar ventana">&times;</button>
+      </div>
+      <div class="legal-modal-body">
+        <h4>Autorización</h4>
+        <p><strong>AUTORIZO</strong> al Comité Nacional de Administración del Fondo para la Construcción de Viviendas y Centros Recreacionales para los Trabajadores en Construcción Civil del Perú - <strong>CONAFOVICER</strong>, con domicilio en Prolongación Cangallo N.° 670, tercer piso, La Victoria, Lima, en su condición de responsable del tratamiento de datos personales, a recopilar, registrar, organizar, almacenar, conservar, consultar, verificar, actualizar, analizar y utilizar mis datos personales de identificación, contacto, información laboral, aportaciones y uso de servicios, así como la información sobre edad y sexo de mis hijos menores declarada en este formulario, en mi condición de padre, madre o representante legal, exclusivamente para verificar las condiciones de acceso a los beneficios y servicios institucionales que correspondan, conforme a la Ley N.° 29733 y su Reglamento, aprobado mediante Decreto Supremo N.° 016-2024-JUS.</p>
+        <p>El suministro de los datos personales tiene carácter obligatorio, en tanto resulta necesario para verificar mi condición de aportante o beneficiario y gestionar el acceso a los servicios y beneficios institucionales de CONAFOVICER. En consecuencia, la negativa a proporcionar dicha información podría impedir la verificación de mi condición, así como la atención de mis solicitudes y el acceso a los beneficios que correspondan.</p>
+
+        <h4>Finalidades y alcance de la autorización</h4>
+        <ul>
+          <li>Crear y mantener actualizado mi registro como aportante o beneficiario, verificar mi identidad, condición laboral y aportaciones, y gestionar mis solicitudes, trámites y acceso a los servicios y beneficios institucionales.</li>
+          <li>Gestionar la <strong>Campaña de actualización de datos</strong>, verificar y mantener vigente mi información como aportante o beneficiario, y mejorar la calidad de los registros utilizados para la prestación de servicios institucionales.</li>
+          <li>Almacenar mi información en el banco de datos personales denominado <strong>“Aportantes”</strong>, de titularidad de CONAFOVICER, inscrito en el Registro Nacional de Protección de Datos Personales con código <strong>RNPDP-PJP N.° 15980</strong>.</li>
+          <li>Diseñar, evaluar y mejorar los servicios y beneficios de vivienda, recreación, educación, capacitación y asistencia social, mediante estadísticas, estudios, segmentaciones y análisis del conjunto de aportantes. Los resultados serán utilizados preferentemente de forma agregada o anonimizada y no se adoptarán decisiones con efectos jurídicos basadas únicamente en tratamientos automatizados.</li>
+          <li>Remitirme información institucional sobre beneficios, programas, actividades, campañas, requisitos, convocatorias y servicios de CONAFOVICER mediante el teléfono, correo electrónico, mensajes de texto, WhatsApp, aplicaciones móviles u otros canales de contacto que haya proporcionado.</li>
+          <li>Atender consultas y reclamos, cumplir obligaciones legales y realizar controles, auditorías y acciones de seguridad relacionadas con los fines institucionales.</li>
+        </ul>
+
+        <h4>Tratamiento, destinatarios y conservación</h4>
+        <ul>
+          <li>CONAFOVICER podrá verificar mis datos con empleadores o exempleadores, entidades públicas competentes y entidades recaudadoras, cuando corresponda y exista habilitación legal.</li>
+          <li>Mis datos podrán ser tratados por personal autorizado de CONAFOVICER bajo las medidas de seguridad técnicas, organizativas y legales correspondientes, garantizando su confidencialidad y evitando accesos, usos o tratamientos no autorizados.</li>
+          <li>Mis datos no serán vendidos ni utilizados para finalidades ajenas a las informadas. Asimismo, podrán ser comunicados o transferidos a autoridades, entidades públicas o terceros, cuando resulte necesario para el cumplimiento de las finalidades informadas y exista una habilitación legal o se cuente con mi consentimiento, según corresponda. CONAFOVICER garantizará que dichas comunicaciones o transferencias se realicen conforme a la normativa de protección de datos personales y únicamente respecto de la información necesaria para cada finalidad.</li>
+          <li>Mis datos personales podrán ser tratados por proveedores que actúen por encargo de CONAFOVICER, exclusivamente para la prestación de los servicios contratados y conforme a sus instrucciones. Para tal efecto, CONAFOVICER adoptará las medidas legales, técnicas y organizativas necesarias para garantizar la confidencialidad y seguridad de la información, así como evitar su utilización para finalidades distintas de las informadas. Cuando existan proveedores que intervengan en el tratamiento de mis datos personales, la lista se encontrará disponible en <a href="https://www.conafovicer.com" target="_blank" rel="noopener noreferrer">www.conafovicer.com</a></li>
+          <li>La información será conservada mientras mantenga una relación como aportante o beneficiario y, posteriormente, durante cinco (5) años o por el plazo mayor exigido por la normativa aplicable. Vencido dicho plazo, y siempre que no subsista una obligación legal u otra causa legítima que justifique su conservación, los datos personales serán eliminados o anonimizados, según corresponda.</li>
+        </ul>
+
+        <h4>Derechos del titular</h4>
+        <p>Puedo solicitar información, acceso, actualización, rectificación, cancelación u oposición al tratamiento de mis datos, así como revocar mi consentimiento, mediante la Mesa de Partes física o virtual de CONAFOVICER, a través de los siguientes canales:</p>
+        <ul>
+          <li><strong>Mesa de partes virtual:</strong> <a href="https://mesadepartes.conafovicer.com/login" target="_blank" rel="noopener noreferrer">https://mesadepartes.conafovicer.com/login</a></li>
+          <li><strong>Dirección física:</strong> Prolongación Cangallo N.° 670, tercer piso, La Victoria, Lima.</li>
+        </ul>
+        <p>En caso de considerar que mi solicitud no ha sido atendida adecuadamente, podré presentar una reclamación ante la Autoridad Nacional de Protección de Datos Personales, conforme a los procedimientos establecidos en la normativa vigente. La revocación no afecta los tratamientos realizados previamente de manera lícita ni aquellos que puedan continuar realizándose al amparo de una obligación legal u otra excepción al consentimiento prevista en la normativa aplicable.</p>
+
+        <h4>Declaración</h4>
+        <p><strong>DECLARO</strong> que he recibido información clara y suficiente sobre el tratamiento de mis datos personales y que, al marcar la casilla de autorización y enviar este formulario, otorgo mi consentimiento de forma libre, previa, expresa, informada e inequívoca para las finalidades descritas.</p>
+      </div>
+      <div class="legal-modal-footer">
+        <button class="legal-modal-confirm-btn" id="confirmAuthModalBtn" type="button">Entendido</button>
+      </div>
+    </div>
+  </div>
+
   <div class="toast" id="toast" role="status" aria-live="polite"><strong id="toastTitle"></strong><span id="toastText"></span></div>
 
-  <script type="module" src="dist/main.js?v=20261111_02"></script>
+  <script type="module" src="dist/main.js?v=20261111_03"></script>
 </body>
 </html>

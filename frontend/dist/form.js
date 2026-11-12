@@ -155,6 +155,11 @@ export class FormController {
         this.quitarHijoBtn = document.getElementById('quitarHijo');
         this.childrenList = document.getElementById('childrenList');
         this.consentimientoDatosCheck = document.getElementById('consentimientoDatos');
+        this.openAuthModalBtn = document.getElementById('openAuthModalBtn');
+        this.authLegalModal = document.getElementById('authLegalModal');
+        this.closeAuthModalBtn = document.getElementById('closeAuthModalBtn');
+        this.confirmAuthModalBtn = document.getElementById('confirmAuthModalBtn');
+        this.basesSorteoCheck = document.getElementById('basesSorteoCheck');
         this.consentToggle = document.getElementById('consentToggle');
         this.consentDetail = document.getElementById('consentDetail');
         this.websiteUrlInput = document.getElementById('website_url');
@@ -172,6 +177,7 @@ export class FormController {
         this.initWorkPills();
         this.initNoConoceRuc();
         this.initRealtimeValidation();
+        this.initAuthModal();
         this.initConsentAccordion();
         this.initChildrenControls();
         this.initUbigeoCatalog();
@@ -384,6 +390,40 @@ export class FormController {
             });
         }
     }
+    initAuthModal() {
+        if (!this.openAuthModalBtn || !this.authLegalModal)
+            return;
+        const openModal = () => {
+            if (!this.authLegalModal)
+                return;
+            this.authLegalModal.hidden = false;
+            document.body.style.overflow = 'hidden';
+            const bodyEl = this.authLegalModal.querySelector('.legal-modal-body');
+            if (bodyEl)
+                bodyEl.scrollTop = 0;
+            this.closeAuthModalBtn?.focus();
+        };
+        const closeModal = () => {
+            if (!this.authLegalModal || this.authLegalModal.hidden)
+                return;
+            this.authLegalModal.hidden = true;
+            document.body.style.overflow = '';
+            this.openAuthModalBtn?.focus();
+        };
+        this.openAuthModalBtn.addEventListener('click', openModal);
+        this.closeAuthModalBtn?.addEventListener('click', closeModal);
+        this.confirmAuthModalBtn?.addEventListener('click', closeModal);
+        this.authLegalModal.addEventListener('click', (e) => {
+            if (e.target === this.authLegalModal) {
+                closeModal();
+            }
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.authLegalModal && !this.authLegalModal.hidden) {
+                closeModal();
+            }
+        });
+    }
     initConsentAccordion() {
         this.consentToggle.addEventListener('click', () => {
             this.hasClickedBases = true;
@@ -399,8 +439,8 @@ export class FormController {
         });
         // Si el usuario marca la casilla de bases antes de abrir el desplegable,
         // se despliega automáticamente para que pueda revisarlas y se registra el clic
-        this.consentimientoDatosCheck.addEventListener('change', () => {
-            if (this.consentimientoDatosCheck.checked && !this.hasClickedBases) {
+        this.basesSorteoCheck?.addEventListener('change', () => {
+            if (this.basesSorteoCheck.checked && !this.hasClickedBases) {
                 this.hasClickedBases = true;
                 this.consentDetail.hidden = false;
                 this.consentToggle.setAttribute('aria-expanded', 'true');
@@ -840,6 +880,13 @@ export class FormController {
                 this.recaptchaCheckBtn.focus();
                 return;
             }
+            // Validación obligatoria de autorización de tratamiento de datos personales
+            if (!this.consentimientoDatosCheck.checked) {
+                this.setFieldError(this.consentimientoDatosCheck, 'Debes autorizar el tratamiento de tus datos personales para continuar.');
+                this.announce('Autorización requerida', 'Debes marcar la casilla «Autorizo el tratamiento de mis datos personales» para continuar.', true);
+                this.consentimientoDatosCheck.focus();
+                return;
+            }
             // Validación obligatoria de lectura y aceptación de las Bases del Sorteo
             if (!this.hasClickedBases) {
                 this.announce('Bases del Sorteo obligatorias', 'Debes hacer clic en «Leer Bases del Sorteo» para conocer los términos antes de registrarte.', true);
@@ -851,10 +898,10 @@ export class FormController {
                 this.consentToggle.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 return;
             }
-            if (!this.consentimientoDatosCheck.checked) {
-                this.setFieldError(this.consentimientoDatosCheck, 'Debes marcar la casilla para confirmar que has leído las bases.');
+            if (this.basesSorteoCheck && !this.basesSorteoCheck.checked) {
+                this.setFieldError(this.basesSorteoCheck, 'Debes marcar la casilla para confirmar que has leído las bases.');
                 this.announce('Casilla requerida', 'Debes marcar la casilla «He leído las Bases del Sorteo» para continuar.', true);
-                this.consentimientoDatosCheck.focus();
+                this.basesSorteoCheck.focus();
                 return;
             }
             const clientOrigin = detectClientOrigin();
@@ -969,6 +1016,14 @@ export class FormController {
         }
         this.renderChildren();
         this.resetRecaptchaState();
+        this.hasClickedBases = false;
+        if (this.consentDetail) {
+            this.consentDetail.hidden = true;
+        }
+        if (this.consentToggle) {
+            this.consentToggle.setAttribute('aria-expanded', 'false');
+            this.consentToggle.textContent = 'Leer Bases del Sorteo';
+        }
         this.form?.querySelectorAll('.is-valid, .is-invalid').forEach((el) => {
             el.classList.remove('is-valid', 'is-invalid');
             el.removeAttribute('aria-invalid');
