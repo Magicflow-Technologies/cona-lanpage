@@ -39,11 +39,8 @@ async function runVerification() {
             !homeHtml.includes('id="distrito"') ||
             !homeHtml.includes('id="categoria_laboral"') ||
             !homeHtml.includes('id="especialidad_laboral"') ||
-            !homeHtml.includes('id="trabajaObraSi"') ||
-            !homeHtml.includes('id="trabajaObraNo"') ||
-            !homeHtml.includes('id="bloqueCondicionalObra"') ||
             !homeHtml.includes('id="ruc_empleador"') ||
-            !homeHtml.includes('id="no_conoce_ruc"') ||
+            !homeHtml.includes('RUC del último empleador') ||
             !homeHtml.includes('id="nombre_proyecto"') ||
             !homeHtml.includes('id="hijos"') ||
             !homeHtml.includes('id="agregarHijo"') ||
@@ -141,11 +138,11 @@ async function runVerification() {
                 categoria: 'Operario',
                 especialidad_laboral: '',
                 especialidad: '',
-                trabaja_en_obra: false,
-                ruc_empleador: '',
-                ruc_empresa: '',
+                trabaja_en_obra: true,
+                ruc_empleador: '20131312955',
+                ruc_empresa: '20131312955',
                 no_conoce_ruc: false,
-                nombre_proyecto: '',
+                nombre_proyecto: 'Residencial Las Torres',
                 hijos_menores: 0,
                 hijos: [],
                 consentimiento_datos_personales: true

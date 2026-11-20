@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Campaña de actualización de datos | CONA</title>
   <meta name="description" content="Campaña de actualización de datos - CONA. Tu información nos importa." />
-  <link rel="stylesheet" href="styles.css?v=20261111_03" />
+  <link rel="stylesheet" href="styles.css?v=20261119_01" />
 </head>
 <body>
   <div class="ambient" aria-hidden="true" id="ambient"></div>
@@ -193,38 +193,15 @@
                 <input type="hidden" id="especialidad" name="especialidad" />
               </div>
 
-              <!-- Fila 2: ¿Actualmente trabajas en una obra de construcción civil? * (Pills Sí / No) -->
-              <div class="field full">
-                <label class="pills-question">¿Actualmente trabajas en una obra de construcción civil? <span class="req">*</span></label>
-                <div class="work-pills-group" role="radiogroup" aria-label="¿Actualmente trabajas en una obra de construcción civil?">
-                  <label class="work-pill active" id="pillSiLabel">
-                    <input type="radio" name="trabaja_en_obra" id="trabajaObraSi" value="Sí" checked />
-                    <span class="pill-btn">Sí</span>
-                  </label>
-                  <label class="work-pill" id="pillNoLabel">
-                    <input type="radio" name="trabaja_en_obra" id="trabajaObraNo" value="No" />
-                    <span class="pill-btn">No</span>
-                  </label>
-                </div>
+              <!-- Fila 2 (2 columnas): RUC del último empleador y Nombre del proyecto u obra -->
+              <div class="field">
+                <label for="ruc_empleador" id="rucLabel">RUC del último empleador <span class="req" id="rucReq">*</span></label>
+                <input id="ruc_empleador" name="ruc_empleador" type="text" inputmode="numeric" autocomplete="off" maxlength="11" pattern="[0-9]{11}" placeholder="11 dígitos" required />
+                <input type="hidden" id="ruc_empresa" name="ruc_empresa" />
               </div>
-
-              <!-- Bloque Condicional (solo visible si selecciona "Sí") -->
-              <div class="conditional-block full" id="bloqueCondicionalObra">
-                <div class="grid">
-                  <div class="field">
-                    <label for="ruc_empleador" id="rucLabel">RUC del empleador <span class="req" id="rucReq">*</span></label>
-                    <input id="ruc_empleador" name="ruc_empleador" type="text" inputmode="numeric" autocomplete="off" maxlength="11" pattern="[0-9]{11}" placeholder="11 dígitos" />
-                    <input type="hidden" id="ruc_empresa" name="ruc_empresa" />
-                    <div class="no-ruc-check-row">
-                      <input id="no_conoce_ruc" name="no_conoce_ruc" type="checkbox" value="1" />
-                      <label for="no_conoce_ruc">No conozco el RUC de mi empleador</label>
-                    </div>
-                  </div>
-                  <div class="field">
-                    <label for="nombre_proyecto">Nombre del proyecto u obra <span class="req">*</span></label>
-                    <input id="nombre_proyecto" name="nombre_proyecto" type="text" maxlength="150" placeholder="Ej. Construcción del edificio Los Álamos" />
-                  </div>
-                </div>
+              <div class="field">
+                <label for="nombre_proyecto">Nombre del proyecto u obra <span class="req">*</span></label>
+                <input id="nombre_proyecto" name="nombre_proyecto" type="text" maxlength="150" placeholder="Ej. Construcción del edificio Los Álamos" required />
               </div>
             </div>
           </section>
@@ -417,6 +394,6 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"><strong id="toastTitle"></strong><span id="toastText"></span></div>
 
-  <script type="module" src="dist/main.js?v=20261111_03"></script>
+  <script type="module" src="dist/main.js?v=20261119_01"></script>
 </body>
 </html>

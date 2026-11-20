@@ -34,7 +34,7 @@ export class ExcelExporter {
       'Categoría Laboral',
       'Especialidad Laboral',
       '¿Trabaja en Obra?',
-      'RUC del Empleador',
+      'RUC del Último Empleador',
       'No Conoce RUC',
       'Nombre de Proyecto u Obra',
       'N.º Hijos Menores',

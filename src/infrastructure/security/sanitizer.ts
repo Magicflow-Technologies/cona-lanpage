@@ -296,33 +296,27 @@ export function validateAndSanitizeParticipanteDTO(raw: Record<string, unknown>)
     ? parseBooleanField(raw.trabaja_en_obra)
     : true;
 
-  let ruc_empleador = '';
-  let no_conoce_ruc = false;
-  let nombre_proyecto = '';
+  const rawRuc = String(raw.ruc_empleador ?? raw.ruc_empresa ?? '')
+    .replace(/\D/g, '')
+    .trim();
 
-  if (trabaja_en_obra) {
-    no_conoce_ruc = parseBooleanField(raw.no_conoce_ruc ?? false);
-    const rawRuc = String(raw.ruc_empleador ?? raw.ruc_empresa ?? '')
-      .replace(/\D/g, '')
-      .trim();
+  if (!rawRuc || !/^[0-9]{11}$/.test(rawRuc)) {
+    throw new AppError(
+      'El RUC del último empleador es obligatorio y debe tener exactamente 11 dígitos numéricos.',
+      400,
+      'INVALID_RUC'
+    );
+  }
+  const ruc_empleador = rawRuc;
+  const no_conoce_ruc = false;
 
-    if (!no_conoce_ruc && rawRuc.length > 0) {
-      if (!/^[0-9]{11}$/.test(rawRuc)) {
-        throw new AppError(
-          'Si ingresas el RUC del empleador, debe tener exactamente 11 dígitos numéricos.',
-          400,
-          'INVALID_RUC'
-        );
-      }
-      ruc_empleador = rawRuc;
-    } else if (!no_conoce_ruc && raw.ruc_empleador !== undefined && String(raw.ruc_empleador).trim() === '') {
-      // Opcional o justificado si no conoce RUC
-      ruc_empleador = '';
-    } else {
-      ruc_empleador = rawRuc;
-    }
-
-    nombre_proyecto = sanitizeString(raw.nombre_proyecto, 150);
+  const nombre_proyecto = sanitizeString(raw.nombre_proyecto, 150);
+  if (!nombre_proyecto) {
+    throw new AppError(
+      'El nombre del proyecto u obra es obligatorio.',
+      400,
+      'REQUIRED_PROJECT_NAME'
+    );
   }
 
   const ruc_empresa = ruc_empleador;

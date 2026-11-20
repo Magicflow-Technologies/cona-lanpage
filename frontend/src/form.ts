@@ -309,6 +309,16 @@ export class FormController {
   }
 
   private updateWorkPills = (): void => {
+    if (!this.pillSi && !this.pillNo) {
+      if (this.rucEmpleadorInput) {
+        this.rucEmpleadorInput.required = true;
+        this.rucEmpleadorInput.disabled = false;
+      }
+      if (this.nombreProyectoInput) {
+        this.nombreProyectoInput.required = true;
+      }
+      return;
+    }
     const isSi = this.pillSi?.checked ?? true;
     if (isSi) {
       this.pillSiLabel?.classList.add('active');
@@ -336,6 +346,16 @@ export class FormController {
   };
 
   private initWorkPills(): void {
+    if (!this.pillSi && !this.pillNo) {
+      if (this.rucEmpleadorInput) {
+        this.rucEmpleadorInput.required = true;
+        this.rucEmpleadorInput.disabled = false;
+      }
+      if (this.nombreProyectoInput) {
+        this.nombreProyectoInput.required = true;
+      }
+      return;
+    }
     this.pillSi?.addEventListener('change', this.updateWorkPills);
     this.pillNo?.addEventListener('change', this.updateWorkPills);
     this.updateWorkPills();
@@ -349,6 +369,14 @@ export class FormController {
   }
 
   private updateRucRequirement(): void {
+    if (!this.pillSi && !this.pillNo) {
+      if (this.rucEmpleadorInput) {
+        this.rucEmpleadorInput.disabled = false;
+        this.rucEmpleadorInput.required = true;
+      }
+      if (this.rucReqSpan) this.rucReqSpan.style.display = 'inline';
+      return;
+    }
     if (!this.pillSi?.checked) return;
     const noConoce = this.noConoceRucCheck?.checked ?? false;
     if (noConoce) {
@@ -417,13 +445,29 @@ export class FormController {
     if (this.rucEmpleadorInput) {
       this.rucEmpleadorInput.addEventListener('blur', () => {
         const val = this.rucEmpleadorInput.value.trim();
-        if (val && !/^[0-9]{11}$/.test(val)) {
+        if (!val) {
           this.setFieldError(
             this.rucEmpleadorInput,
-            'El RUC del empleador debe tener exactamente 11 dígitos numéricos.'
+            'El RUC del último empleador es obligatorio.'
+          );
+        } else if (!/^[0-9]{11}$/.test(val)) {
+          this.setFieldError(
+            this.rucEmpleadorInput,
+            'El RUC del último empleador debe tener exactamente 11 dígitos numéricos.'
           );
         } else {
           this.setFieldError(this.rucEmpleadorInput, '');
+        }
+      });
+    }
+
+    if (this.nombreProyectoInput) {
+      this.nombreProyectoInput.addEventListener('blur', () => {
+        const val = this.nombreProyectoInput.value.trim();
+        if (!val) {
+          this.setFieldError(this.nombreProyectoInput, 'Ingresa el nombre del proyecto u obra.');
+        } else {
+          this.setFieldError(this.nombreProyectoInput, '');
         }
       });
     }
@@ -962,37 +1006,35 @@ export class FormController {
         return;
       }
 
-      const trabajaEnObra = this.pillSi ? this.pillSi.checked : true;
-      const noConoceRuc = Boolean(this.noConoceRucCheck && this.noConoceRucCheck.checked);
       const rucRaw = this.rucEmpleadorInput ? this.rucEmpleadorInput.value.trim().replace(/\D/g, '') : '';
       const nombreProyectoVal = this.nombreProyectoInput ? this.nombreProyectoInput.value.trim() : '';
 
-      if (trabajaEnObra) {
-        if (!noConoceRuc) {
-          if (rucRaw.length !== 11) {
-            if (this.rucEmpleadorInput) {
-              this.setFieldError(
-                this.rucEmpleadorInput,
-                'El RUC del empleador debe tener exactamente 11 dígitos numéricos o marca "No conozco el RUC".'
-              );
-              this.rucEmpleadorInput.focus();
-            }
-            this.announce(
-              'RUC inválido',
-              'Ingresa los 11 dígitos del RUC de tu empleador o marca la casilla si no lo conoces.',
-              true
-            );
-            return;
-          }
+      if (rucRaw.length !== 11) {
+        if (this.rucEmpleadorInput) {
+          this.setFieldError(
+            this.rucEmpleadorInput,
+            'El RUC del último empleador debe tener exactamente 11 dígitos numéricos.'
+          );
+          this.rucEmpleadorInput.focus();
         }
-        if (!nombreProyectoVal && this.nombreProyectoInput) {
-          this.setFieldError(this.nombreProyectoInput, 'Ingresa el nombre del proyecto u obra.');
-          this.announce('Nombre de obra requerido', 'Ingresa el nombre del proyecto u obra donde trabajas.', true);
-          this.nombreProyectoInput.focus();
-          return;
-        }
+        this.announce(
+          'RUC inválido',
+          'Ingresa los 11 dígitos numéricos del RUC del último empleador.',
+          true
+        );
+        return;
       }
-      const rucFinal = trabajaEnObra && !noConoceRuc ? rucRaw : '';
+
+      if (!nombreProyectoVal) {
+        if (this.nombreProyectoInput) {
+          this.setFieldError(this.nombreProyectoInput, 'Ingresa el nombre del proyecto u obra.');
+          this.nombreProyectoInput.focus();
+        }
+        this.announce('Nombre de obra requerido', 'Ingresa el nombre del proyecto u obra donde laboraste.', true);
+        return;
+      }
+
+      const rucFinal = rucRaw;
 
       const countHijos = Math.max(
         0,
@@ -1098,11 +1140,11 @@ export class FormController {
         categoria: categoriaVal,
         especialidad_laboral: especialidadVal,
         especialidad: especialidadVal,
-        trabaja_en_obra: trabajaEnObra,
+        trabaja_en_obra: true,
         ruc_empleador: rucFinal,
         ruc_empresa: rucFinal,
-        no_conoce_ruc: trabajaEnObra ? noConoceRuc : false,
-        nombre_proyecto: trabajaEnObra ? nombreProyectoVal : '',
+        no_conoce_ruc: false,
+        nombre_proyecto: nombreProyectoVal,
         hijos_menores: countHijos,
         sin_hijos: countHijos === 0,
         hijos,
