@@ -432,6 +432,30 @@ export class FormController {
                 }
             });
         }
+        if (this.categoriaLabSelect) {
+            this.categoriaLabSelect.addEventListener('change', () => {
+                if (!this.categoriaLabSelect.value) {
+                    this.setFieldError(this.categoriaLabSelect, 'Selecciona tu categoría laboral.');
+                }
+                else {
+                    this.setFieldError(this.categoriaLabSelect, '');
+                }
+            });
+        }
+        if (this.especialidadLabInput) {
+            this.especialidadLabInput.addEventListener('blur', () => {
+                const val = this.especialidadLabInput.value.trim();
+                if (!val) {
+                    this.setFieldError(this.especialidadLabInput, 'Ingresa tu especialidad laboral.');
+                }
+                else {
+                    this.setFieldError(this.especialidadLabInput, '');
+                }
+            });
+            this.especialidadLabInput.addEventListener('input', () => {
+                this.setFieldError(this.especialidadLabInput, '');
+            });
+        }
     }
     initAuthModal() {
         if (!this.openAuthModalBtn || !this.authLegalModal)
@@ -872,6 +896,20 @@ export class FormController {
                 this.distSelect.focus();
                 return;
             }
+            const categoriaVal = this.categoriaLabSelect.value;
+            if (!categoriaVal) {
+                this.setFieldError(this.categoriaLabSelect, 'Selecciona tu categoría laboral.');
+                this.announce('Categoría requerida', 'Selecciona tu categoría laboral.', true);
+                this.categoriaLabSelect.focus();
+                return;
+            }
+            const especialidadVal = this.especialidadLabInput.value.trim();
+            if (!especialidadVal) {
+                this.setFieldError(this.especialidadLabInput, 'Ingresa tu especialidad laboral.');
+                this.announce('Especialidad requerida', 'Ingresa tu especialidad laboral.', true);
+                this.especialidadLabInput.focus();
+                return;
+            }
             const rucRaw = this.rucEmpleadorInput ? this.rucEmpleadorInput.value.trim().replace(/\D/g, '') : '';
             const nombreProyectoVal = this.nombreProyectoInput ? this.nombreProyectoInput.value.trim() : '';
             if (rucRaw.length !== 11) {
@@ -908,8 +946,6 @@ export class FormController {
             const direccionVal = this.direccionDomInput?.value.trim() ||
                 this.direccionLegacyInput?.value.trim() ||
                 '';
-            const categoriaVal = this.categoriaLabSelect.value;
-            const especialidadVal = this.especialidadLabInput.value.trim();
             // Verificación formal estilo Google reCAPTCHA ("No soy un robot") antes de enviar
             const captchaAns = this.captchaRespuestaInput ? this.captchaRespuestaInput.value.trim() : '';
             const captchaTok = this.captchaTokenInput ? this.captchaTokenInput.value.trim() : '';
