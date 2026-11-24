@@ -22,8 +22,8 @@ class ExcelExporter {
             'ID',
             'Tipo de Documento',
             'N.º de Documento',
-            'Nombres',
             'Apellidos',
+            'Nombres',
             'Fecha de Nacimiento',
             'N.º de Celular',
             'Correo Electrónico',
@@ -31,14 +31,14 @@ class ExcelExporter {
             'Departamento',
             'Provincia',
             'Distrito',
+            'Ubigeo',
             'Categoría Laboral',
             'Especialidad Laboral',
-            '¿Trabaja en Obra?',
             'RUC del Último Empleador',
-            'No Conoce RUC',
             'Nombre de Proyecto u Obra',
             'N.º Hijos Menores',
             'Detalle Hijos (Edad / Sexo)',
+            'Autorización Datos Personales',
             'Estado en el Sorteo',
             'Fecha y Hora de Registro',
             'Dispositivo',
@@ -120,14 +120,13 @@ class ExcelExporter {
                 ? p.hijos_detalle.map((h) => `Hijo ${h.orden}: ${h.edad} años (${h.sexo})`).join(', ')
                 : 'Sin hijos menores';
             const fechaFormateada = ExcelExporter.formatIsoDate(p.fecha_registro);
-            const trabajaObraStr = p.trabaja_en_obra ? 'Sí' : 'No';
-            const noConoceRucStr = p.no_conoce_ruc ? 'Sí' : 'No';
+            const autorizacionStr = p.consentimiento_datos_personales ? 'Sí' : 'No';
             const rowValues = [
                 p.id,
                 p.tipo_documento || 'DNI',
                 unescapeForExcel(p.numero_documento || p.dni),
-                unescapeForExcel(p.nombres),
                 unescapeForExcel(p.apellidos),
+                unescapeForExcel(p.nombres),
                 p.fecha_nacimiento || '(No indicada)',
                 p.celular,
                 unescapeForExcel(p.correo) || '(No indicado)',
@@ -135,14 +134,14 @@ class ExcelExporter {
                 unescapeForExcel(p.departamento),
                 unescapeForExcel(p.provincia),
                 unescapeForExcel(p.distrito),
+                unescapeForExcel(p.ubigeo) || '(No indicado)',
                 unescapeForExcel(p.categoria_laboral || p.categoria),
                 unescapeForExcel(p.especialidad_laboral || p.especialidad) || '(No indicada)',
-                trabajaObraStr,
                 unescapeForExcel(p.ruc_empleador || p.ruc_empresa) || '(No indicado)',
-                noConoceRucStr,
                 unescapeForExcel(p.nombre_proyecto) || '(No indicado)',
                 p.hijos_menores ?? 0,
                 detalleHijos,
+                autorizacionStr,
                 p.estado_sorteo,
                 fechaFormateada,
                 unescapeForExcel(p.dispositivo) || 'No detectado',
@@ -166,7 +165,7 @@ class ExcelExporter {
                     left: { style: 'thin', color: { argb: 'FFD8E2EE' } },
                     right: { style: 'thin', color: { argb: 'FFD8E2EE' } }
                 };
-                if ([1, 2, 3, 6, 7, 13, 15, 17, 19, 21, 22, 23, 24].includes(colNumber)) {
+                if ([1, 2, 3, 6, 7, 13, 14, 16, 18, 20, 21, 22, 23, 24].includes(colNumber)) {
                     cell.alignment = { vertical: 'middle', horizontal: 'center' };
                 }
                 else {

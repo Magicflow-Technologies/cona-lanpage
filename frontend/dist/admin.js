@@ -559,7 +559,6 @@ class AdminPortalController {
         <td>
           <span class="doc-badge">${r.categoria_laboral || r.categoria || '-'}</span>
           ${(r.especialidad_laboral || r.especialidad) ? `<small class="participant-meta">Esp.: ${r.especialidad_laboral || r.especialidad}</small>` : ''}
-          ${r.trabaja_en_obra !== undefined ? `<small class="participant-meta">En obra: ${r.trabaja_en_obra ? 'Sí' : 'No'}</small>` : ''}
           ${(r.ruc_empleador || r.ruc_empresa) ? `<small class="participant-meta">RUC: ${r.ruc_empleador || r.ruc_empresa}</small>` : ''}
           ${r.nombre_proyecto ? `<small class="participant-meta">Proy.: ${r.nombre_proyecto}</small>` : ''}
         </td>
