@@ -1335,7 +1335,7 @@ export class FormController {
         <h2 class="success-title" id="successTitleHeading">¡Muchas gracias por tu participación!</h2>
 
         <p class="success-subtitle">
-          Tus datos han sido actualizados exitosamente en <strong>CONA</strong> y ya estás participando en el <strong>sorteo de grandes premios para tu hogar</strong>.
+          Tus datos han sido actualizados exitosamente en <strong>CONA</strong>.
         </p>
 
         <div class="success-ticket">
