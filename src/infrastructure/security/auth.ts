@@ -21,65 +21,100 @@ const SALT_ROUNDS = 12;
 export const AUTH_COOKIE_NAME = 'token';
 export const LEGACY_AUTH_COOKIE_NAME = 'cona_admin_token';
 
+export type UserRole = 'admin' | 'viewer';
+
 export interface AdminJwtPayload {
   username: string;
-  role: 'admin';
+  role: UserRole;
   iat?: number;
   exp?: number;
 }
 
+export interface AuthVerifyResult {
+  isValid: boolean;
+  username?: string;
+  role?: UserRole;
+}
+
 class AuthService {
   private readonly adminUser: string;
-  private readonly rawPassword: string;
+  private readonly rawAdminPassword: string;
+  private readonly viewerUser: string;
+  private readonly rawViewerPassword: string;
   private readonly jwtSecret: string;
   private adminPasswordHash: string;
+  private viewerPasswordHash: string;
 
   constructor() {
     this.adminUser = (process.env.ADMIN_USER || 'admin').trim();
-    this.rawPassword = process.env.ADMIN_PASSWORD || 'ConaAdmin2026!';
+    this.rawAdminPassword = process.env.ADMIN_PASSWORD || 'ConaAdmin2026*Secure!';
+    this.viewerUser = (process.env.VIEWER_USER || 'lector').trim();
+    this.rawViewerPassword = process.env.VIEWER_PASSWORD || 'ConaLector2026*';
     this.jwtSecret =
       (process.env.JWT_SECRET || '').trim() ||
       'cona_institucional_jwt_secret_key_2026_seguridad_web';
 
     const envHash = (process.env.ADMIN_PASSWORD_HASH || '').trim();
-
     if (envHash && envHash.startsWith('$2')) {
       this.adminPasswordHash = envHash;
     } else {
-      // Generar hash seguro con bcrypt (cost 12) a partir de la contraseña en .env
-      this.adminPasswordHash = bcryptImpl.hashSync(this.rawPassword, SALT_ROUNDS);
+      this.adminPasswordHash = bcryptImpl.hashSync(this.rawAdminPassword, SALT_ROUNDS);
     }
+
+    this.viewerPasswordHash = bcryptImpl.hashSync(this.rawViewerPassword, SALT_ROUNDS);
   }
 
   public getAdminUsername(): string {
     return this.adminUser;
   }
 
-  public async verifyCredentials(username: string, plainPassword: string): Promise<boolean> {
+  public getViewerUsername(): string {
+    return this.viewerUser;
+  }
+
+  public async verifyCredentials(username: string, plainPassword: string): Promise<AuthVerifyResult> {
     const cleanUser = username.trim();
-    if (cleanUser !== this.adminUser) {
-      // Ejecutar comparación ficticia para mitigar ataques de temporización (Timing Attacks)
-      await bcryptImpl.compare(plainPassword, this.adminPasswordHash);
-      return false;
+
+    // 1. Verificar Admin
+    if (cleanUser === this.adminUser) {
+      const ok = await this.verifyAdminPassword(plainPassword);
+      if (ok) {
+        return { isValid: true, username: this.adminUser, role: 'admin' };
+      }
     }
-    return this.verifyAdminPassword(plainPassword);
+
+    // 2. Verificar Viewer (Solo Lectura)
+    if (cleanUser === this.viewerUser) {
+      const currentEnvViewerPass = process.env.VIEWER_PASSWORD || this.rawViewerPassword;
+      let ok = plainPassword === currentEnvViewerPass;
+      if (!ok) {
+        ok = await bcryptImpl.compare(plainPassword, this.viewerPasswordHash);
+      }
+      if (ok) {
+        return { isValid: true, username: this.viewerUser, role: 'viewer' };
+      }
+    }
+
+    // Comparación ficticia para mitigar Timing Attacks
+    await bcryptImpl.compare(plainPassword, this.adminPasswordHash);
+    return { isValid: false };
   }
 
   public async verifyAdminPassword(plainPassword: string): Promise<boolean> {
     if (!plainPassword) {
       return false;
     }
-    const currentEnvPassword = process.env.ADMIN_PASSWORD || this.rawPassword;
+    const currentEnvPassword = process.env.ADMIN_PASSWORD || this.rawAdminPassword;
     if (plainPassword === currentEnvPassword) {
       return true;
     }
     return bcryptImpl.compare(plainPassword, this.adminPasswordHash);
   }
 
-  public generateToken(username: string): string {
+  public generateToken(username: string, role: UserRole = 'admin'): string {
     const payload: AdminJwtPayload = {
       username,
-      role: 'admin'
+      role
     };
     return jwt.sign(payload, this.jwtSecret, {
       expiresIn: '24h',
@@ -107,6 +142,7 @@ export function extractAdminToken(req: Request): string | undefined {
 
 /**
  * Middleware que protege rutas administrativas verificando el JWT en Cookie HttpOnly.
+ * Permite acceso tanto a 'admin' como a 'viewer'.
  */
 export function requireAdminAuth(req: Request, res: Response, next: NextFunction): void {
   const token = extractAdminToken(req);
@@ -114,13 +150,13 @@ export function requireAdminAuth(req: Request, res: Response, next: NextFunction
     res.status(401).json({
       ok: false,
       code: 'UNAUTHORIZED',
-      message: 'Sesión no iniciada o expirada. Por favor, inicia sesión como administrador.'
+      message: 'Sesión no iniciada o expirada. Por favor, inicia sesión.'
     });
     return;
   }
 
   const decoded = authService.verifyToken(token);
-  if (!decoded || decoded.role !== 'admin') {
+  if (!decoded || (decoded.role !== 'admin' && decoded.role !== 'viewer')) {
     res.clearCookie(AUTH_COOKIE_NAME, { path: '/' });
     res.clearCookie(LEGACY_AUTH_COOKIE_NAME, { path: '/' });
     res.status(401).json({
@@ -132,5 +168,22 @@ export function requireAdminAuth(req: Request, res: Response, next: NextFunction
   }
 
   (req as Request & { admin?: AdminJwtPayload }).admin = decoded;
+  next();
+}
+
+/**
+ * Middleware que restringe una acción exclusivamente a usuarios con rol 'admin'.
+ * Si el usuario es de solo lectura ('viewer'), devuelve 403 Forbidden.
+ */
+export function requireAdminRoleOnly(req: Request, res: Response, next: NextFunction): void {
+  const adminPayload = (req as Request & { admin?: AdminJwtPayload }).admin;
+  if (!adminPayload || adminPayload.role !== 'admin') {
+    res.status(403).json({
+      ok: false,
+      code: 'FORBIDDEN_READ_ONLY',
+      message: 'Acceso denegado: Tu usuario tiene permisos de solo lectura (vista) y no puede modificar ni eliminar registros.'
+    });
+    return;
+  }
   next();
 }

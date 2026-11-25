@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { container } from '../container';
-import { requireAdminAuth } from '../infrastructure/security/auth';
+import { requireAdminAuth, requireAdminRoleOnly } from '../infrastructure/security/auth';
 import {
   createRateLimiter,
   securityPayloadGuard
@@ -45,11 +45,13 @@ router.get(
 router.delete(
   '/admin/participantes/:id',
   requireAdminAuth,
+  requireAdminRoleOnly,
   container.adminController.eliminarParticipante
 );
 router.post(
   '/admin/participantes/:id/restaurar',
   requireAdminAuth,
+  requireAdminRoleOnly,
   container.adminController.restaurarParticipante
 );
 router.get('/admin/exportar-excel', requireAdminAuth, container.adminController.exportarExcel);

@@ -16,6 +16,7 @@ interface ListParticipantesResponse {
 }
 
 class AdminPortalController {
+  private currentUserRole: 'admin' | 'viewer' = 'admin';
   private readonly loginView: HTMLElement;
   private readonly dashboardView: HTMLElement;
   private readonly loginForm: HTMLFormElement;
@@ -177,7 +178,7 @@ class AdminPortalController {
       }
       const data = (await res.json()) as SessionResponse;
       if (data.authenticated && data.user) {
-        await this.showDashboard(data.user.username);
+        await this.showDashboard(data.user);
       } else {
         sessionStorage.removeItem(this.SESSION_KEY);
         this.showLogin();
@@ -205,8 +206,14 @@ class AdminPortalController {
     this.usernameInput.focus();
   }
 
-  private async showDashboard(username: string): Promise<void> {
-    this.adminUserBadge.textContent = `Usuario: ${username}`;
+  private async showDashboard(user: { username: string; role?: string } | string): Promise<void> {
+    const username = typeof user === 'string' ? user : user.username;
+    const role = typeof user === 'string' ? 'admin' : (user.role || 'admin');
+    this.currentUserRole = role === 'viewer' ? 'viewer' : 'admin';
+
+    const roleBadge = this.currentUserRole === 'viewer' ? ' (Solo Lectura)' : ' (Administrador)';
+    this.adminUserBadge.textContent = `Usuario: ${username}${roleBadge}`;
+    this.dashboardView.classList.toggle('role-viewer', this.currentUserRole === 'viewer');
     const loaded = await this.loadParticipants();
     if (loaded) {
       this.loginView.hidden = true;
@@ -254,9 +261,10 @@ class AdminPortalController {
         this.passwordInput.type = 'password';
         this.updatePasswordToggleUi('toggleLoginPasswordBtn', false);
         sessionStorage.setItem(this.SESSION_KEY, 'true');
-        await this.showDashboard(data.user?.username || 'admin');
+        await this.showDashboard(data.user || { username: 'admin', role: 'admin' });
         if (!this.dashboardView.hidden) {
-          this.notify('Bienvenido', 'Sesión administrativa iniciada con éxito.');
+          const roleText = data.user?.role === 'viewer' ? 'de solo lectura' : 'administrativa';
+          this.notify('Bienvenido', `Sesión ${roleText} iniciada con éxito.`);
         }
       } catch {
         this.showLogin('Error de conexión con el servidor. Inténtalo nuevamente.');
@@ -671,13 +679,16 @@ class AdminPortalController {
            ${r.fecha_eliminacion ? `<small class="participant-meta">Baja: ${this.formatDateTime(r.fecha_eliminacion)}</small>` : ''}`
         : `<span class="status-pill status-active">✓ ${r.estado_sorteo}</span>`;
 
-      const actionHtml = isTrashView
-        ? `<button type="button" class="btn-restore-row" data-restore-id="${r.id}" data-participant-name="${nombreCompleto}">
-             ↺ Restaurar
-           </button>`
-        : `<button type="button" class="btn-delete-row" data-delete-id="${r.id}" data-participant-name="${nombreCompleto}">
-             🗑 Eliminar
-           </button>`;
+      const isViewer = this.currentUserRole === 'viewer';
+      const actionHtml = isViewer
+        ? `<span class="participant-meta" style="color:#64748b;font-weight:600;">Solo lectura</span>`
+        : (isTrashView
+            ? `<button type="button" class="btn-restore-row" data-restore-id="${r.id}" data-participant-name="${nombreCompleto}">
+                 ↺ Restaurar
+               </button>`
+            : `<button type="button" class="btn-delete-row" data-delete-id="${r.id}" data-participant-name="${nombreCompleto}">
+                 🗑 Eliminar
+               </button>`);
 
       tr.innerHTML = `
         <td class="col-id">#${r.id}</td>

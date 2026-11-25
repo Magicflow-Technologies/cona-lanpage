@@ -33,8 +33,8 @@ export class AdminController {
         return;
       }
 
-      const isValid = await authService.verifyCredentials(username, password);
-      if (!isValid) {
+      const authResult = await authService.verifyCredentials(username, password);
+      if (!authResult.isValid || !authResult.role) {
         logAuditEvent(req, 'ADMIN_LOGIN_FAIL', `Intento fallido usuario: ${username}`);
         res.status(401).json({
           ok: false,
@@ -44,9 +44,11 @@ export class AdminController {
         return;
       }
 
-      logAuditEvent(req, 'ADMIN_LOGIN_OK', `Inicio de sesión exitoso: ${username}`);
+      const activeUser = authResult.username || username;
+      const role = authResult.role;
+      logAuditEvent(req, 'ADMIN_LOGIN_OK', `Inicio de sesión exitoso: ${activeUser} (${role})`);
       const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https';
-      const token = authService.generateToken(username);
+      const token = authService.generateToken(activeUser, role);
       res.cookie('token', token, {
         httpOnly: true,
         secure: Boolean(isHttps),
@@ -56,8 +58,8 @@ export class AdminController {
 
       res.status(200).json({
         ok: true,
-        message: 'Sesión administrativa iniciada correctamente.',
-        user: { username, role: 'admin' }
+        message: 'Sesión iniciada correctamente.',
+        user: { username: activeUser, role }
       });
     } catch (error) {
       console.error('[AdminController.login] Error:', error);
