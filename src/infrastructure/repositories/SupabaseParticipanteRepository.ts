@@ -1,53 +1,310 @@
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { IParticipanteRepository } from '../../core/interfaces/IParticipanteRepository';
-import { Participante } from '../../core/entities/Participante';
+import { Participante, HijoMenor, TipoDocumento } from '../../core/entities/Participante';
 import { ParticipanteDTO } from '../../core/dtos/ParticipanteDTO';
-import { AppError } from '../../core/errors/AppError';
+import { AppError, DuplicateDocumentError } from '../../core/errors/AppError';
+
+interface SupabaseParticipanteRow {
+  id: number;
+  tipo_documento: string;
+  numero_documento: string;
+  nombres: string;
+  apellidos: string;
+  fecha_nacimiento?: string;
+  celular: string;
+  correo?: string;
+  direccion_domiciliaria?: string;
+  direccion?: string;
+  departamento: string;
+  provincia: string;
+  distrito: string;
+  ubigeo?: string;
+  categoria_laboral?: string;
+  categoria?: string;
+  especialidad_laboral?: string;
+  especialidad?: string;
+  trabaja_en_obra?: number | boolean;
+  ruc_empleador?: string;
+  ruc_empresa?: string;
+  no_conoce_ruc?: number | boolean;
+  nombre_proyecto?: string;
+  hijos_menores?: number;
+  hijos_json?: unknown;
+  consentimiento_datos_personales?: number | boolean;
+  estado_sorteo?: string;
+  dispositivo?: string;
+  navegador?: string;
+  fecha_registro: string;
+  activo?: number | boolean;
+  fecha_eliminacion?: string | null;
+}
 
 /**
- * Adaptador alternativo para Supabase / PostgreSQL.
- * Demuestra el principio de Inversión de Dependencias (DIP).
+ * Adaptador de Persistencia para Supabase (PostgreSQL).
+ * Implementa IParticipanteRepository con soporte para borrado lógico (Soft Delete).
  */
 export class SupabaseParticipanteRepository implements IParticipanteRepository {
+  private client: SupabaseClient | null = null;
   private readonly supabaseUrl: string;
   private readonly supabaseKey: string;
 
   constructor() {
-    this.supabaseUrl = process.env.SUPABASE_URL || '';
-    this.supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+    this.supabaseUrl = (process.env.SUPABASE_URL || '').trim();
+    this.supabaseKey = (
+      process.env.SUPABASE_SERVICE_ROLE_KEY ||
+      process.env.SUPABASE_KEY ||
+      process.env.SUPABASE_ANON_KEY ||
+      ''
+    ).trim();
   }
 
-  public async crear(_data: ParticipanteDTO): Promise<Participante> {
+  private getClient(): SupabaseClient {
+    if (this.client) {
+      return this.client;
+    }
     if (!this.supabaseUrl || !this.supabaseKey) {
       throw new AppError(
-        'Adaptador Supabase seleccionado pero faltan SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY en .env',
+        'Faltan variables SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY en el entorno (.env).',
         500,
         'SUPABASE_CONFIG_MISSING'
       );
     }
-    throw new AppError('Conector remoto Supabase listo para configurar credenciales.', 501);
+    this.client = createClient(this.supabaseUrl, this.supabaseKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false
+      }
+    });
+    return this.client;
   }
 
-  public async buscarPorDni(_dni: string): Promise<Participante | null> {
-    return null;
+  private mapRowToEntity(row: SupabaseParticipanteRow): Participante {
+    let parsedHijos: HijoMenor[] = [];
+    if (Array.isArray(row.hijos_json)) {
+      parsedHijos = row.hijos_json as HijoMenor[];
+    } else if (typeof row.hijos_json === 'string') {
+      try {
+        parsedHijos = JSON.parse(row.hijos_json);
+      } catch {
+        parsedHijos = [];
+      }
+    }
+
+    const rawTipo = row.tipo_documento || 'DNI';
+    let tipoDoc: TipoDocumento = 'DNI';
+    if (
+      rawTipo === 'Carné de extranjería' ||
+      rawTipo === 'Carnet de Extranjería' ||
+      rawTipo === 'Carnet de Extranjeria'
+    ) {
+      tipoDoc = 'Carné de extranjería';
+    } else if (rawTipo === 'Pasaporte') {
+      tipoDoc = 'Pasaporte';
+    } else if (
+      rawTipo === 'Permiso temporal de permanencia' ||
+      rawTipo === 'PTP'
+    ) {
+      tipoDoc = 'Permiso temporal de permanencia';
+    } else if (rawTipo === 'Otro documento') {
+      tipoDoc = 'Otro documento';
+    }
+
+    const apellidos = row.apellidos || '';
+    const nombres = row.nombres || '';
+    const nombresApellidos = `${nombres} ${apellidos}`.trim();
+    const direccionDom = row.direccion_domiciliaria || row.direccion || '';
+    const catLaboral = row.categoria_laboral || row.categoria || 'Operario';
+    const espLaboral = row.especialidad_laboral || row.especialidad || '';
+    const rucEmp = row.ruc_empleador || row.ruc_empresa || '';
+    const trabajaEnObra =
+      row.trabaja_en_obra === undefined ? true : Boolean(row.trabaja_en_obra);
+    const noConoceRuc =
+      row.no_conoce_ruc === undefined ? false : Boolean(row.no_conoce_ruc);
+
+    return {
+      id: Number(row.id),
+      tipo_documento: tipoDoc,
+      numero_documento: row.numero_documento,
+      nombres,
+      apellidos,
+      fecha_nacimiento: row.fecha_nacimiento || '',
+      celular: row.celular,
+      correo: row.correo || '',
+      direccion_domiciliaria: direccionDom,
+      direccion: direccionDom,
+      departamento: row.departamento,
+      provincia: row.provincia,
+      distrito: row.distrito,
+      ubigeo: row.ubigeo || '',
+      categoria_laboral: catLaboral,
+      categoria: catLaboral,
+      especialidad_laboral: espLaboral,
+      especialidad: espLaboral,
+      trabaja_en_obra: trabajaEnObra,
+      ruc_empleador: rucEmp,
+      ruc_empresa: rucEmp,
+      no_conoce_ruc: noConoceRuc,
+      nombre_proyecto: row.nombre_proyecto || '',
+      hijos_menores: Number(row.hijos_menores ?? parsedHijos.length),
+      hijos_json: typeof row.hijos_json === 'string' ? row.hijos_json : JSON.stringify(parsedHijos),
+      hijos_detalle: parsedHijos,
+      consentimiento_datos_personales: Boolean(row.consentimiento_datos_personales),
+      estado_sorteo: (row.estado_sorteo as 'Participando' | 'Excluido') || 'Participando',
+      dispositivo: row.dispositivo || 'No detectado',
+      navegador: row.navegador || 'No detectado',
+      fecha_registro: row.fecha_registro,
+      activo: row.activo === undefined ? true : (row.activo === 1 || row.activo === true),
+      fecha_eliminacion: row.fecha_eliminacion ?? null,
+      dni: row.numero_documento,
+      nombres_apellidos: nombresApellidos
+    };
   }
 
-  public async buscarPorDocumento(_tipoDoc: string, numDoc: string): Promise<Participante | null> {
-    return this.buscarPorDni(numDoc);
+  public async crear(data: ParticipanteDTO): Promise<Participante> {
+    const supabase = this.getClient();
+
+    const insertPayload = {
+      tipo_documento: data.tipo_documento || 'DNI',
+      numero_documento: data.numero_documento,
+      nombres: data.nombres,
+      apellidos: data.apellidos,
+      fecha_nacimiento: data.fecha_nacimiento || '',
+      celular: data.celular,
+      correo: data.correo || '',
+      direccion_domiciliaria: data.direccion || '',
+      direccion: data.direccion || '',
+      departamento: data.departamento,
+      provincia: data.provincia,
+      distrito: data.distrito,
+      ubigeo: data.ubigeo || '',
+      categoria_laboral: data.categoria,
+      categoria: data.categoria,
+      especialidad_laboral: data.especialidad || '',
+      especialidad: data.especialidad || '',
+      trabaja_en_obra: data.trabaja_en_obra ? 1 : 0,
+      ruc_empleador: data.ruc_empresa || '',
+      ruc_empresa: data.ruc_empresa || '',
+      no_conoce_ruc: data.no_conoce_ruc ? 1 : 0,
+      nombre_proyecto: data.nombre_proyecto || '',
+      hijos_menores: data.hijos_menores || 0,
+      hijos_json: data.hijos_detalle || [],
+      consentimiento_datos_personales: data.consentimiento_datos_personales ? 1 : 0,
+      estado_sorteo: 'Participando',
+      dispositivo: data.dispositivo || 'No detectado',
+      navegador: data.navegador || 'No detectado',
+      activo: 1,
+      fecha_eliminacion: null
+    };
+
+    const { data: inserted, error } = await supabase
+      .from('participantes')
+      .insert(insertPayload)
+      .select()
+      .single();
+
+    if (error) {
+      if (error.code === '23505' || error.message?.includes('duplicate key') || error.message?.includes('unique constraint')) {
+        throw new DuplicateDocumentError(data.numero_documento);
+      }
+      console.error('[Supabase.crear] Error:', error);
+      throw new AppError(`Error al registrar en Supabase: ${error.message}`, 500);
+    }
+
+    return this.mapRowToEntity(inserted as SupabaseParticipanteRow);
+  }
+
+  public async buscarPorDni(numeroDocumento: string): Promise<Participante | null> {
+    const supabase = this.getClient();
+    const { data, error } = await supabase
+      .from('participantes')
+      .select('*')
+      .eq('numero_documento', numeroDocumento)
+      .limit(1)
+      .maybeSingle();
+
+    if (error || !data) {
+      return null;
+    }
+    return this.mapRowToEntity(data as SupabaseParticipanteRow);
+  }
+
+  public async buscarPorDocumento(tipoDoc: string, numDoc: string): Promise<Participante | null> {
+    const supabase = this.getClient();
+    const { data, error } = await supabase
+      .from('participantes')
+      .select('*')
+      .eq('tipo_documento', tipoDoc)
+      .eq('numero_documento', numDoc)
+      .limit(1)
+      .maybeSingle();
+
+    if (error || !data) {
+      return this.buscarPorDni(numDoc);
+    }
+    return this.mapRowToEntity(data as SupabaseParticipanteRow);
   }
 
   public async obtenerTodos(): Promise<Participante[]> {
-    return [];
+    const supabase = this.getClient();
+    const { data, error } = await supabase
+      .from('participantes')
+      .select('*')
+      .or('activo.eq.1,activo.is.null')
+      .order('id', { ascending: false });
+
+    if (error || !data) {
+      console.error('[Supabase.obtenerTodos] Error:', error);
+      return [];
+    }
+    return (data as SupabaseParticipanteRow[]).map((r) => this.mapRowToEntity(r));
   }
 
   public async obtenerEliminados(): Promise<Participante[]> {
-    return [];
+    const supabase = this.getClient();
+    const { data, error } = await supabase
+      .from('participantes')
+      .select('*')
+      .eq('activo', 0)
+      .order('fecha_eliminacion', { ascending: false });
+
+    if (error || !data) {
+      console.error('[Supabase.obtenerEliminados] Error:', error);
+      return [];
+    }
+    return (data as SupabaseParticipanteRow[]).map((r) => this.mapRowToEntity(r));
   }
 
-  public async eliminar(_id: number): Promise<boolean> {
-    return false;
+  public async eliminar(id: number): Promise<boolean> {
+    const supabase = this.getClient();
+    const { error } = await supabase
+      .from('participantes')
+      .update({
+        activo: 0,
+        fecha_eliminacion: new Date().toISOString()
+      })
+      .eq('id', id);
+
+    if (error) {
+      console.error('[Supabase.eliminar] Error:', error);
+      return false;
+    }
+    return true;
   }
 
-  public async restaurar(_id: number): Promise<boolean> {
-    return false;
+  public async restaurar(id: number): Promise<boolean> {
+    const supabase = this.getClient();
+    const { error } = await supabase
+      .from('participantes')
+      .update({
+        activo: 1,
+        fecha_eliminacion: null
+      })
+      .eq('id', id);
+
+    if (error) {
+      console.error('[Supabase.restaurar] Error:', error);
+      return false;
+    }
+    return true;
   }
 }
