@@ -44,7 +44,7 @@ interface SupabaseParticipanteRow {
  * Implementa IParticipanteRepository con soporte para borrado lógico (Soft Delete).
  */
 export class SupabaseParticipanteRepository implements IParticipanteRepository {
-  private client: SupabaseClient | null = null;
+  private client: SupabaseClient<any, any, any> | null = null;
   private readonly supabaseUrl: string;
   private readonly supabaseKey: string;
 
@@ -58,7 +58,7 @@ export class SupabaseParticipanteRepository implements IParticipanteRepository {
     ).trim();
   }
 
-  private getClient(): SupabaseClient {
+  private getClient(): SupabaseClient<any, any, any> {
     if (this.client) {
       return this.client;
     }
@@ -69,10 +69,14 @@ export class SupabaseParticipanteRepository implements IParticipanteRepository {
         'SUPABASE_CONFIG_MISSING'
       );
     }
+    const schema = (process.env.SUPABASE_SCHEMA || 'cona').trim();
     this.client = createClient(this.supabaseUrl, this.supabaseKey, {
       auth: {
         persistSession: false,
         autoRefreshToken: false
+      },
+      db: {
+        schema
       }
     });
     return this.client;

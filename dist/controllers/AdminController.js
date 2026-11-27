@@ -24,8 +24,8 @@ class AdminController {
                 });
                 return;
             }
-            const isValid = await auth_1.authService.verifyCredentials(username, password);
-            if (!isValid) {
+            const authResult = await auth_1.authService.verifyCredentials(username, password);
+            if (!authResult.isValid || !authResult.role) {
                 (0, securityMiddleware_1.logAuditEvent)(req, 'ADMIN_LOGIN_FAIL', `Intento fallido usuario: ${username}`);
                 res.status(401).json({
                     ok: false,
@@ -34,9 +34,11 @@ class AdminController {
                 });
                 return;
             }
-            (0, securityMiddleware_1.logAuditEvent)(req, 'ADMIN_LOGIN_OK', `Inicio de sesión exitoso: ${username}`);
+            const activeUser = authResult.username || username;
+            const role = authResult.role;
+            (0, securityMiddleware_1.logAuditEvent)(req, 'ADMIN_LOGIN_OK', `Inicio de sesión exitoso: ${activeUser} (${role})`);
             const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https';
-            const token = auth_1.authService.generateToken(username);
+            const token = auth_1.authService.generateToken(activeUser, role);
             res.cookie('token', token, {
                 httpOnly: true,
                 secure: Boolean(isHttps),
@@ -45,8 +47,8 @@ class AdminController {
             });
             res.status(200).json({
                 ok: true,
-                message: 'Sesión administrativa iniciada correctamente.',
-                user: { username, role: 'admin' }
+                message: 'Sesión iniciada correctamente.',
+                user: { username: activeUser, role }
             });
         }
         catch (error) {
